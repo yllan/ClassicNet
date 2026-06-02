@@ -4,6 +4,13 @@
 
 #include "classicnet/cn_errors.h"
 
+/* mbedTLS 3.x routes parts of the (TLS 1.3) handshake through PSA crypto, which
+   must be initialized first -- even without MBEDTLS_USE_PSA_CRYPTO. */
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000 && defined(MBEDTLS_PSA_CRYPTO_C)
+#include <psa/crypto.h>
+#define CN_TLS_NEEDS_PSA_INIT 1
+#endif
+
 /* --- BIO glue: mbedTLS <-> inner CNTransport (non-blocking) --------------- */
 
 static int tls_bio_send(void *ctx, const unsigned char *buf, size_t len)
@@ -11,8 +18,10 @@ static int tls_bio_send(void *ctx, const unsigned char *buf, size_t len)
     CNTlsTransport *tls = (CNTlsTransport *)ctx;
     UInt32 sent = 0;
     OSStatus s = tls->inner->send(tls->inner, buf, (UInt32)len, &sent);
+    tls->sendCalls++;
     if (s != noErr) return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     if (sent == 0) return MBEDTLS_ERR_SSL_WANT_WRITE;
+    tls->nSent += sent;
     return (int)sent;
 }
 
@@ -22,6 +31,8 @@ static int tls_bio_recv(void *ctx, unsigned char *buf, size_t len)
     UInt32 got = 0;
     Boolean eof = false;
     OSStatus s = tls->inner->recv(tls->inner, buf, (UInt32)len, &got, &eof);
+    tls->recvCalls++;
+    if (got > 0) tls->nRecv += got;
     if (s != noErr) return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     if (got == 0) {
         if (eof) return 0;                 /* clean EOF */
@@ -40,10 +51,12 @@ static OSStatus tls_poll(CNTransport *t)
     if (s != noErr) return s;                     /* would-block or error */
     if (tls->handshakeDone) return noErr;
 
+    tls->handshakeStarted = 1;
     rc = mbedtls_ssl_handshake(&tls->ssl);
     if (rc == 0) { tls->handshakeDone = 1; return noErr; }
     if (rc == MBEDTLS_ERR_SSL_WANT_READ || rc == MBEDTLS_ERR_SSL_WANT_WRITE)
         return kCNErrWouldBlock;
+    tls->lastError = rc;   /* keep the mbedTLS code for diagnostics */
     return kCNErrTlsHandshake;
 }
 
@@ -92,6 +105,11 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
 
     if (tls == 0 || inner == 0 || out == 0)
         return kCNErrBadParam;
+
+#ifdef CN_TLS_NEEDS_PSA_INIT
+    if (psa_crypto_init() != PSA_SUCCESS)
+        return kCNErrTlsInit;
+#endif
 
     tls->inner = inner;
     tls->handshakeDone = 0;

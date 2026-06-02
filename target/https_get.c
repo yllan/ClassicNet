@@ -53,7 +53,8 @@ int main(void)
 
     printf("TLS handshake + fetch to %s:%u ...\r\n", host, (unsigned)port);
     t0 = TickCount();
-    while (!CN_RequestDone(&req) && guard++ < 8000000)
+    (void)guard;
+    while (!CN_RequestDone(&req) && (TickCount() - t0) < 45UL * 60UL) /* 45 s */
         CN_RequestPump(&req);
     t1 = TickCount();
 
@@ -64,6 +65,15 @@ int main(void)
                (unsigned long)((t1 - t0) / 60), (unsigned long)(((t1 - t0) % 60) * 100 / 60));
     else
         printf("TIMEOUT\r\n");
+
+    if (!cap.done || cap.result != noErr) {
+        printf("  last mbedTLS rc = %d (-0x%04X)\r\n",
+               tls.lastError, (unsigned)(-tls.lastError));
+        printf("  diag: hsStarted=%d sent=%lu (%lu calls) recv=%lu (%lu calls)\r\n",
+               tls.handshakeStarted,
+               (unsigned long)tls.nSent, (unsigned long)tls.sendCalls,
+               (unsigned long)tls.nRecv, (unsigned long)tls.recvCalls);
+    }
 
     CN_TlsDispose(&tls);
     CN_OTDispose(&ot);

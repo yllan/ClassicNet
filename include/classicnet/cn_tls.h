@@ -28,6 +28,11 @@ typedef struct {
     mbedtls_entropy_context   entropy;
     mbedtls_x509_crt          cacert;
     int                       handshakeDone;
+    int                       lastError;   /* last mbedTLS rc (for diagnostics) */
+    /* diagnostics */
+    int                       handshakeStarted;
+    UInt32                    nSent, nRecv;
+    UInt32                    sendCalls, recvCalls;
 } CNTlsTransport;
 
 #ifdef __cplusplus
