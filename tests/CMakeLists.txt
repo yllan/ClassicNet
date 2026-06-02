@@ -9,3 +9,4 @@ endfunction()
 
 cn_add_test(test_url)
 cn_add_test(test_http)
+cn_add_test(test_ws)

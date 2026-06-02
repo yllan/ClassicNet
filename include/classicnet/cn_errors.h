@@ -20,7 +20,12 @@ enum {
     kCNErrBadStatusLine     = -30011,
     kCNErrBadHeader         = -30012,
     kCNErrTooManyHeaders    = -30013,
-    kCNErrHeaderTooLong     = -30014
+    kCNErrHeaderTooLong     = -30014,
+
+    /* WebSocket frame parser */
+    kCNErrFrameIncomplete   = -30020,  /* need more bytes; not an error per se */
+    kCNErrBadFrame          = -30021,
+    kCNErrFrameTooLarge     = -30022   /* 64-bit length exceeds 32-bit on target */
 };
 
 #endif /* CLASSICNET_CN_ERRORS_H */

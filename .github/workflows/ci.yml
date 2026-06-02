@@ -1,0 +1,46 @@
+name: ci
+
+on:
+  push:
+  pull_request:
+
+jobs:
+  host-tests:
+    name: Host tests (ASan + UBSan)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure
+        run: cmake -S . -B build
+      - name: Build
+        run: cmake --build build
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  fuzz-smoke:
+    name: Fuzz smoke (libFuzzer)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install clang
+        run: sudo apt-get update && sudo apt-get install -y clang
+      - name: Fuzz url
+        run: ./scripts/run-fuzz.sh url 30
+      - name: Fuzz http
+        run: ./scripts/run-fuzz.sh http 30
+      - name: Fuzz ws
+        run: ./scripts/run-fuzz.sh ws 30
+
+  # PPC cross-build (L-B) needs the Retro68 toolchain. Building it from source
+  # in CI is slow; enable this once a prebuilt toolchain image is available.
+  #
+  # ppc-cross-build:
+  #   name: PPC cross-compile (Retro68)
+  #   runs-on: ubuntu-latest
+  #   container: <prebuilt-retro68-image>
+  #   steps:
+  #     - uses: actions/checkout@v4
+  #     - run: |
+  #         for f in src/*.c; do
+  #           powerpc-apple-macos-gcc -std=c90 -Wall -Wextra -Iinclude -c "$f" -o /dev/null
+  #         done
