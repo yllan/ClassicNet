@@ -159,71 +159,137 @@ static int cn_hexval(char c)
     return -1;
 }
 
+/* Byte-at-a-time chunked-body state machine (robust to arbitrary input splits). */
+enum {
+    CKS_SIZE,        /* reading hex size digits */
+    CKS_EXT,         /* skipping chunk-extension until CR */
+    CKS_SIZE_LF,     /* expecting LF after the size-line CR */
+    CKS_DATA,        /* copying chunkLeft data bytes */
+    CKS_DATA_CR,     /* expecting CR after chunk data */
+    CKS_DATA_LF,     /* expecting LF after that CR */
+    CKS_TR,          /* trailer section, at the start of a line */
+    CKS_TR_SKIP,     /* skipping a trailer header line until CR */
+    CKS_TR_SKIP_LF,  /* expecting LF after a trailer-line CR */
+    CKS_END_LF,      /* expecting the final LF of the terminating blank line */
+    CKS_DONE
+};
+
+void CN_ChunkedInit(CNChunked *d)
+{
+    d->state = CKS_SIZE;
+    d->chunkLeft = 0;
+    d->sizeDigits = 0;
+}
+
+OSStatus CN_ChunkedFeed(CNChunked *d, const char *in, UInt32 inLen, UInt32 *consumed,
+                        void (*sink)(void *ctx, const char *bytes, UInt32 len), void *ctx)
+{
+    UInt32 i = 0;
+
+    while (i < inLen) {
+        char c = in[i];
+        switch (d->state) {
+        case CKS_SIZE: {
+            int hv = cn_hexval(c);
+            if (hv >= 0) {
+                if (d->chunkLeft > (0xFFFFFFFFul >> 4)) { *consumed = i; return kCNErrBadChunk; }
+                d->chunkLeft = (d->chunkLeft << 4) | (UInt32)hv;
+                d->sizeDigits++;
+                i++;
+            } else if (c == ';') {
+                if (d->sizeDigits == 0) { *consumed = i; return kCNErrBadChunk; }
+                d->state = CKS_EXT; i++;
+            } else if (c == '\r') {
+                if (d->sizeDigits == 0) { *consumed = i; return kCNErrBadChunk; }
+                d->state = CKS_SIZE_LF; i++;
+            } else {
+                *consumed = i; return kCNErrBadChunk;
+            }
+            break;
+        }
+        case CKS_EXT:
+            if (c == '\r') d->state = CKS_SIZE_LF;
+            i++;
+            break;
+        case CKS_SIZE_LF:
+            if (c != '\n') { *consumed = i; return kCNErrBadChunk; }
+            i++;
+            d->state = (d->chunkLeft == 0) ? CKS_TR : CKS_DATA;
+            break;
+        case CKS_DATA: {
+            UInt32 avail = inLen - i;
+            UInt32 take = d->chunkLeft < avail ? d->chunkLeft : avail;
+            if (take > 0) { sink(ctx, in + i, take); i += take; d->chunkLeft -= take; }
+            if (d->chunkLeft == 0) d->state = CKS_DATA_CR;
+            break;
+        }
+        case CKS_DATA_CR:
+            if (c != '\r') { *consumed = i; return kCNErrBadChunk; }
+            d->state = CKS_DATA_LF; i++;
+            break;
+        case CKS_DATA_LF:
+            if (c != '\n') { *consumed = i; return kCNErrBadChunk; }
+            d->state = CKS_SIZE; d->sizeDigits = 0; i++;
+            break;
+        case CKS_TR:
+            d->state = (c == '\r') ? CKS_END_LF : CKS_TR_SKIP;
+            i++;
+            break;
+        case CKS_TR_SKIP:
+            if (c == '\r') d->state = CKS_TR_SKIP_LF;
+            i++;
+            break;
+        case CKS_TR_SKIP_LF:
+            if (c != '\n') { *consumed = i; return kCNErrBadChunk; }
+            d->state = CKS_TR; i++;
+            break;
+        case CKS_END_LF:
+            if (c != '\n') { *consumed = i; return kCNErrBadChunk; }
+            i++;
+            d->state = CKS_DONE;
+            *consumed = i;
+            return noErr;
+        default:
+            *consumed = i;
+            return kCNErrBadChunk;
+        }
+    }
+
+    *consumed = i;
+    return (d->state == CKS_DONE) ? noErr : kCNErrChunkIncomplete;
+}
+
+/* Single-shot decode into a caller buffer, built on the streaming decoder. */
+typedef struct { char *out; UInt32 cap; UInt32 len; int overflow; } CNChunkCollect;
+
+static void cn_chunk_collect(void *ctx, const char *bytes, UInt32 len)
+{
+    CNChunkCollect *cc = (CNChunkCollect *)ctx;
+    UInt32 k;
+    for (k = 0; k < len; k++) {
+        if (cc->len >= cc->cap) { cc->overflow = 1; return; }
+        cc->out[cc->len++] = bytes[k];
+    }
+}
+
 OSStatus CN_DecodeChunked(const char *in, UInt32 inLen,
                           char *out, UInt32 outCap,
                           UInt32 *outLen, UInt32 *consumed)
 {
-    UInt32 i = 0;
-    UInt32 o = 0;
+    CNChunked d;
+    CNChunkCollect cc;
+    UInt32 used = 0;
+    OSStatus s;
 
     if (in == 0 || out == 0 || outLen == 0 || consumed == 0)
         return kCNErrBadChunk;
 
-    for (;;) {
-        UInt32 sz = 0;
-        int ndig = 0;
-
-        /* chunk-size = 1*HEXDIG */
-        while (i < inLen) {
-            int hv = cn_hexval(in[i]);
-            if (hv < 0) break;
-            if (sz > (0xFFFFFFFFul >> 4))   /* guard sz<<4 overflow */
-                return kCNErrBadChunk;
-            sz = (sz << 4) | (UInt32)hv;
-            ndig++;
-            i++;
-        }
-        if (i >= inLen) return kCNErrChunkIncomplete;
-        if (ndig == 0) return kCNErrBadChunk;
-
-        /* skip optional chunk-ext up to the CRLF that ends the size line */
-        while (i + 1 < inLen && !(in[i] == '\r' && in[i + 1] == '\n'))
-            i++;
-        if (i + 1 >= inLen) return kCNErrChunkIncomplete;
-        i += 2;
-
-        if (sz == 0) {
-            /* last chunk: optional trailer lines, then a blank line */
-            for (;;) {
-                if (i + 1 > inLen) return kCNErrChunkIncomplete;
-                if (in[i] == '\r') {
-                    if (i + 1 >= inLen) return kCNErrChunkIncomplete;
-                    if (in[i + 1] != '\n') return kCNErrBadChunk;
-                    i += 2;
-                    *outLen = o;
-                    *consumed = i;
-                    return noErr;
-                }
-                while (i + 1 < inLen && !(in[i] == '\r' && in[i + 1] == '\n'))
-                    i++;
-                if (i + 1 >= inLen) return kCNErrChunkIncomplete;
-                i += 2;
-            }
-        }
-
-        /* chunk-data: sz bytes, then a trailing CRLF */
-        if (sz > inLen - i) return kCNErrChunkIncomplete;
-        if (sz > outCap - o) return kCNErrChunkOverflow;
-        {
-            UInt32 k;
-            for (k = 0; k < sz; k++)
-                out[o + k] = in[i + k];
-        }
-        o += sz;
-        i += sz;
-
-        if (i + 2 > inLen) return kCNErrChunkIncomplete;
-        if (in[i] != '\r' || in[i + 1] != '\n') return kCNErrBadChunk;
-        i += 2;
-    }
+    CN_ChunkedInit(&d);
+    cc.out = out; cc.cap = outCap; cc.len = 0; cc.overflow = 0;
+    s = CN_ChunkedFeed(&d, in, inLen, &used, cn_chunk_collect, &cc);
+    if (cc.overflow) return kCNErrChunkOverflow;
+    if (s != noErr) return s;
+    *outLen = cc.len;
+    *consumed = used;
+    return noErr;
 }

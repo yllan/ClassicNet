@@ -76,6 +76,13 @@ OSStatus CN_RequestStart(CNRequest *r, CNTransport *t,
     return noErr;
 }
 
+/* Sink for the streaming chunked decoder: hand decoded bytes straight to onData. */
+static void req_chunk_sink(void *ctx, const char *bytes, UInt32 len)
+{
+    CNRequest *r = (CNRequest *)ctx;
+    if (r->cb.onData) r->cb.onData(r, bytes, len, r->ud);
+}
+
 /* Classify the body framing once headers are known; deliver any already-buffered
    body bytes. Returns noErr (continue), or terminal via req_done/req_fail. */
 static OSStatus enter_body(CNRequest *r)
@@ -115,8 +122,15 @@ static OSStatus enter_body(CNRequest *r)
     } else if (r->bodyMode == BM_EOF) {
         if (avail > 0 && r->cb.onData)
             r->cb.onData(r, r->buf + r->bodyOff, avail, r->ud);
+    } else { /* BM_CHUNKED: feed the already-buffered body bytes to the decoder */
+        UInt32 used;
+        OSStatus cs;
+        CN_ChunkedInit(&r->chunkDec);
+        cs = CN_ChunkedFeed(&r->chunkDec, r->buf + r->bodyOff, avail, &used,
+                            req_chunk_sink, r);
+        if (cs == noErr) return req_done(r);
+        if (cs != kCNErrChunkIncomplete) return req_fail(r, cs);
     }
-    /* BM_CHUNKED keeps the bytes in buf for the decoder. */
 
     r->state = ST_BODY;
     return noErr;
@@ -197,31 +211,20 @@ OSStatus CN_RequestPump(CNRequest *r)
                     return noErr;
                 }
             } else if (r->bodyMode == BM_CHUNKED) {
-                char dec[CN_REQ_BUF];
-                UInt32 dl = 0, cons = 0;
+                char tmp[1024];
+                UInt32 used;
                 OSStatus ds;
-                if (r->bufLen < sizeof(r->buf)) {
-                    s = r->t->recv(r->t, r->buf + r->bufLen,
-                                   (UInt32)sizeof(r->buf) - r->bufLen, &got, &eof);
-                    if (s != noErr) return req_fail(r, s);
-                    r->bufLen += got;
+                s = r->t->recv(r->t, tmp, (UInt32)sizeof(tmp), &got, &eof);
+                if (s != noErr) return req_fail(r, s);
+                if (got > 0) {
+                    ds = CN_ChunkedFeed(&r->chunkDec, tmp, got, &used, req_chunk_sink, r);
+                    if (ds == noErr) return req_done(r);
+                    if (ds != kCNErrChunkIncomplete) return req_fail(r, ds);
+                } else if (eof) {
+                    return req_fail(r, kCNErrConnClosed);
+                } else {
+                    return noErr;
                 }
-                ds = CN_DecodeChunked(r->buf + r->bodyOff, r->bufLen - r->bodyOff,
-                                      dec, (UInt32)sizeof(dec), &dl, &cons);
-                if (ds == noErr) {
-                    if (dl > 0 && r->cb.onData) r->cb.onData(r, dec, dl, r->ud);
-                    return req_done(r);
-                }
-                if (ds == kCNErrChunkIncomplete) {
-                    if (got == 0) {
-                        if (eof) return req_fail(r, kCNErrConnClosed);
-                        if (r->bufLen >= sizeof(r->buf))
-                            return req_fail(r, kCNErrResponseTooLarge);
-                        return noErr;
-                    }
-                    break;                             /* got more; try again */
-                }
-                return req_fail(r, ds);
             } else { /* BM_EOF */
                 char tmp[1024];
                 s = r->t->recv(r->t, tmp, (UInt32)sizeof(tmp), &got, &eof);

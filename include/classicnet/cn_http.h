@@ -55,6 +55,25 @@ OSStatus CN_DecodeChunked(const char *in, UInt32 inLen,
                           UInt32 *outLen, UInt32 *consumed);
 
 /*
+ * Streaming chunked decoder: feed bytes as they arrive (any split), and decoded
+ * body bytes are handed to `sink` incrementally. O(n) total, constant memory --
+ * the right shape for the async body path. CN_DecodeChunked is a single-shot
+ * wrapper over this.
+ */
+typedef struct {
+    int    state;
+    UInt32 chunkLeft;   /* data bytes remaining in the current chunk */
+    int    sizeDigits;  /* hex digits seen in the current size line */
+} CNChunked;
+
+void CN_ChunkedInit(CNChunked *d);
+
+/* Returns noErr (terminating zero-chunk seen), kCNErrChunkIncomplete (feed more),
+   or kCNErrBadChunk. *consumed = input bytes processed. */
+OSStatus CN_ChunkedFeed(CNChunked *d, const char *in, UInt32 inLen, UInt32 *consumed,
+                        void (*sink)(void *ctx, const char *bytes, UInt32 len), void *ctx);
+
+/*
  * Serialize an HTTP/1.1 request head (no body) into out[0,outCap):
  *   "METHOD path HTTP/1.1\r\nHost: host\r\n" + each header + "\r\n"
  * out is NUL-terminated; *outLen is the length without the NUL.

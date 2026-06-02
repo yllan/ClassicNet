@@ -31,6 +31,7 @@ struct CNRequest {
     CNHttpResponse     resp;
     int                bodyMode;
     UInt32             contentRemaining;  /* for Content-Length bodies */
+    CNChunked          chunkDec;          /* streaming decoder for chunked bodies */
     CNRequestCallbacks cb;
     void              *ud;
     OSStatus           result;

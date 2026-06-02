@@ -41,6 +41,7 @@ CMakeFiles/cnhttps.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_reques
   /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/string.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/ConditionalMacros.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacTypes.h \
+  /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_errors.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_http.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_request.h \
@@ -381,8 +382,6 @@ CMakeFiles/cnhttps.dir/https_get.c.obj: /home/yllan/Projects/RetroMacIdea/Classi
 
 /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_tls.c:
 
-/tmp/ot-mbedtls/include/mbedtls/chachapoly.h:
-
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/TextCommon.h:
@@ -394,6 +393,10 @@ CMakeFiles/cnhttps.dir/https_get.c.obj: /home/yllan/Projects/RetroMacIdea/Classi
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/ieeefp.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/OpenTptInternet.h:
+
+/home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGColorSpace.h:
+
+/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c:
 
 /tmp/ot-mbedtls/include/mbedtls/asn1.h:
 
@@ -407,11 +410,9 @@ CMakeFiles/cnhttps.dir/https_get.c.obj: /home/yllan/Projects/RetroMacIdea/Classi
 
 /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/OpenTransport.h:
 
-/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c:
-
-/home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGColorSpace.h:
-
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_endian.h:
+
+/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include-fixed/limits.h:
 
@@ -490,6 +491,8 @@ CMakeFiles/cnhttps.dir/https_get.c.obj: /home/yllan/Projects/RetroMacIdea/Classi
 /tmp/ot-mbedtls/include/mbedtls/ecp.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/features.h:
+
+/tmp/ot-mbedtls/include/mbedtls/chachapoly.h:
 
 /tmp/ot-mbedtls/include/mbedtls/check_config.h:
 

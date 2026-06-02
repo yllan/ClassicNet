@@ -83,6 +83,38 @@ static void test_overflow(void)
     CN_CHECK(DECODE(in, out, sizeof(out), &ol, &cons) == kCNErrChunkOverflow);
 }
 
+/* --- streaming decoder fed one byte at a time (maximal fragmentation) --- */
+
+typedef struct { char buf[64]; UInt32 len; } ChunkBuf;
+
+static void chunk_sink(void *ctx, const char *bytes, UInt32 len)
+{
+    ChunkBuf *cb = (ChunkBuf *)ctx;
+    UInt32 k;
+    for (k = 0; k < len; k++)
+        if (cb->len < sizeof(cb->buf)) cb->buf[cb->len++] = bytes[k];
+}
+
+static void test_streaming_byte_at_a_time(void)
+{
+    const char in[] = "4;ext\r\nWiki\r\n5\r\npedia\r\n0\r\nX-T: 1\r\n\r\n";
+    CNChunked d;
+    ChunkBuf cb;
+    OSStatus s = kCNErrChunkIncomplete;
+    UInt32 i, used;
+
+    cb.len = 0;
+    CN_ChunkedInit(&d);
+    for (i = 0; i < sizeof(in) - 1; i++) {
+        s = CN_ChunkedFeed(&d, in + i, 1, &used, chunk_sink, &cb);
+        if (s == noErr) break;
+        CN_CHECK(s == kCNErrChunkIncomplete);  /* never errors on a valid split */
+    }
+    CN_CHECK(s == noErr);
+    CN_CHECK(cb.len == 9);
+    CN_CHECK(memcmp(cb.buf, "Wikipedia", 9) == 0);
+}
+
 int main(void)
 {
     CN_RUN(test_basic);
@@ -92,5 +124,6 @@ int main(void)
     CN_RUN(test_incomplete);
     CN_RUN(test_bad_chunk);
     CN_RUN(test_overflow);
+    CN_RUN(test_streaming_byte_at_a_time);
     return CN_SUMMARY();
 }

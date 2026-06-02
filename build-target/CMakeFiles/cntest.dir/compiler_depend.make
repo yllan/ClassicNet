@@ -35,6 +35,7 @@ CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request
   /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/string.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/ConditionalMacros.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacTypes.h \
+  /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_errors.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_http.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_request.h \
@@ -108,6 +109,7 @@ CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.ob
   /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/string.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/ConditionalMacros.h \
   /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacTypes.h \
+  /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_base64.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_errors.h \
   /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_http.h \
@@ -190,6 +192,10 @@ CMakeFiles/cntest.dir/test_runner.c.obj: /home/yllan/Projects/RetroMacIdea/Class
 
 /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_sha1.h:
 
+/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c:
+
+/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_sha1.c:
+
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h:
@@ -252,14 +258,12 @@ CMakeFiles/cntest.dir/test_runner.c.obj: /home/yllan/Projects/RetroMacIdea/Class
 
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/newlib.h:
 
-/home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/strings.h:
-
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_locale.h:
 
 /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/features.h:
 
+/home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/strings.h:
+
+/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h:
+
 /home/yllan/Projects/RetroMacIdea/ClassicNet/include/classicnet/cn_transport.h:
-
-/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c:
-
-/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_sha1.c:
