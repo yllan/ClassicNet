@@ -1,0 +1,27 @@
+CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj: \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_request.h \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacTypes.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/ConditionalMacros.h \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_http.h \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_transport.h \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_errors.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/string.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/newlib.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_newlib_version.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/config.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/ieeefp.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/features.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/reent.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
+ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stddef.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/lock.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/cdefs.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_locale.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/strings.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/string.h

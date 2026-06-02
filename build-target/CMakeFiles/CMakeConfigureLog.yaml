@@ -62,8 +62,8 @@ events:
     checks:
       - "Detecting C compiler ABI info"
     directories:
-      source: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI"
-      binary: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI"
+      source: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6"
+      binary: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6"
     cmakeVariables:
       CMAKE_C_FLAGS: ""
       CMAKE_C_FLAGS_DEBUG: "-g"
@@ -73,13 +73,13 @@ events:
       variable: "CMAKE_C_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI'
+        Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6'
         
-        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_65d9f/fast
-        /usr/bin/gmake  -f CMakeFiles/cmTC_65d9f.dir/build.make CMakeFiles/cmTC_65d9f.dir/build
-        gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI'
-        Building C object CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj
-        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc   -v -o CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_97e4e/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_97e4e.dir/build.make CMakeFiles/cmTC_97e4e.dir/build
+        gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6'
+        Building C object CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj
+        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc   -v -o CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c
         Using built-in specs.
         COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc
         Target: powerpc-apple-macos
@@ -87,8 +87,8 @@ events:
         Thread model: aix
         Supported LTO compression algorithms: zlib zstd
         gcc version 12.2.0 (GCC) 
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/'
-         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1 -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_65d9f.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -version -o /tmp/claude-1000/ccSUHYpz.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/'
+         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1 -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_97e4e.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -version -o /tmp/claude-1000/ccXjhJ89.s
         GNU C17 (GCC) version 12.2.0 (powerpc-apple-macos)
         	compiled by GNU C version 13.3.0, GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version none
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
@@ -103,14 +103,14 @@ events:
         	compiled by GNU C version 13.3.0, GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version none
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
         Compiler executable checksum: 7bf5ae95299b69d0a2351d35efc8ac88
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/'
-         /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj /tmp/claude-1000/ccSUHYpz.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/'
+         /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj /tmp/claude-1000/ccXjhJ89.s
         COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/
         LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.'
-        Linking C executable cmTC_65d9f
-        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_65d9f.dir/link.txt --verbose=1
-        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc  -v CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj -o cmTC_65d9f 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.'
+        Linking C executable cmTC_97e4e
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_97e4e.dir/link.txt --verbose=1
+        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc  -v CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj -o cmTC_97e4e 
         Using built-in specs.
         COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc
         COLLECT_LTO_WRAPPER=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/lto-wrapper
@@ -121,10 +121,10 @@ events:
         gcc version 12.2.0 (GCC) 
         COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/
         LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_65d9f' '-dumpdir' 'cmTC_65d9f.'
-         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_65d9f -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_65d9f' '-dumpdir' 'cmTC_65d9f.'
-        gmake[1]: Leaving directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI'
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_97e4e' '-dumpdir' 'cmTC_97e4e.'
+         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_97e4e -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_97e4e' '-dumpdir' 'cmTC_97e4e.'
+        gmake[1]: Leaving directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6'
         
       exitCode: 0
   -
@@ -156,13 +156,13 @@ events:
     message: |
       Parsed C implicit link information:
         link line regex: [^( *|.*[/\\])(powerpc-apple-macos-ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
-        ignore line: [Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI']
+        ignore line: [Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6']
         ignore line: []
-        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_65d9f/fast]
-        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_65d9f.dir/build.make CMakeFiles/cmTC_65d9f.dir/build]
-        ignore line: [gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-J42jYI']
-        ignore line: [Building C object CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj]
-        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc   -v -o CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c]
+        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_97e4e/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_97e4e.dir/build.make CMakeFiles/cmTC_97e4e.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-XiY6l6']
+        ignore line: [Building C object CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj]
+        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc   -v -o CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj -c /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc]
         ignore line: [Target: powerpc-apple-macos]
@@ -170,8 +170,8 @@ events:
         ignore line: [Thread model: aix]
         ignore line: [Supported LTO compression algorithms: zlib zstd]
         ignore line: [gcc version 12.2.0 (GCC) ]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/']
-        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1 -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_65d9f.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -version -o /tmp/claude-1000/ccSUHYpz.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/']
+        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1 -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCCompilerABI.c -quiet -dumpdir CMakeFiles/cmTC_97e4e.dir/ -dumpbase CMakeCCompilerABI.c.c -dumpbase-ext .c -version -o /tmp/claude-1000/ccXjhJ89.s]
         ignore line: [GNU C17 (GCC) version 12.2.0 (powerpc-apple-macos)]
         ignore line: [	compiled by GNU C version 13.3.0  GMP version 6.3.0  MPFR version 4.2.1  MPC version 1.3.1  isl version none]
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
@@ -186,14 +186,14 @@ events:
         ignore line: [	compiled by GNU C version 13.3.0  GMP version 6.3.0  MPFR version 4.2.1  MPC version 1.3.1  isl version none]
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
         ignore line: [Compiler executable checksum: 7bf5ae95299b69d0a2351d35efc8ac88]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/']
-        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj /tmp/claude-1000/ccSUHYpz.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/']
+        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj /tmp/claude-1000/ccXjhJ89.s]
         ignore line: [COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/]
         ignore line: [LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.']
-        ignore line: [Linking C executable cmTC_65d9f]
-        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_65d9f.dir/link.txt --verbose=1]
-        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc  -v CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj -o cmTC_65d9f ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.']
+        ignore line: [Linking C executable cmTC_97e4e]
+        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_97e4e.dir/link.txt --verbose=1]
+        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc  -v CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj -o cmTC_97e4e ]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-gcc]
         ignore line: [COLLECT_LTO_WRAPPER=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/lto-wrapper]
@@ -204,8 +204,8 @@ events:
         ignore line: [gcc version 12.2.0 (GCC) ]
         ignore line: [COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/]
         ignore line: [LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_65d9f' '-dumpdir' 'cmTC_65d9f.']
-        link line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_65d9f -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_97e4e' '-dumpdir' 'cmTC_97e4e.']
+        link line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_97e4e -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group]
           arg [/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2] ==> ignore
           arg [-btextro] ==> ignore
           arg [-bhalt:4] ==> ignore
@@ -213,10 +213,10 @@ events:
           arg [--no-check-sections] ==> ignore
           arg [-undefined=_consolewrite] ==> ignore
           arg [-o] ==> ignore
-          arg [cmTC_65d9f] ==> ignore
+          arg [cmTC_97e4e] ==> ignore
           arg [-L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0] ==> dir [/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0]
           arg [-L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib] ==> dir [/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib]
-          arg [CMakeFiles/cmTC_65d9f.dir/CMakeCCompilerABI.c.obj] ==> ignore
+          arg [CMakeFiles/cmTC_97e4e.dir/CMakeCCompilerABI.c.obj] ==> ignore
           arg [--start-group] ==> ignore
           arg [-lgcc] ==> lib [gcc]
           arg [-lc] ==> lib [c]
@@ -240,8 +240,8 @@ events:
     checks:
       - "Detecting CXX compiler ABI info"
     directories:
-      source: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx"
-      binary: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx"
+      source: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta"
+      binary: "/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta"
     cmakeVariables:
       CMAKE_CXX_FLAGS: ""
       CMAKE_CXX_FLAGS_DEBUG: "-g"
@@ -251,13 +251,13 @@ events:
       variable: "CMAKE_CXX_ABI_COMPILED"
       cached: true
       stdout: |
-        Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx'
+        Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta'
         
-        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_a00ed/fast
-        /usr/bin/gmake  -f CMakeFiles/cmTC_a00ed.dir/build.make CMakeFiles/cmTC_a00ed.dir/build
-        gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx'
-        Building CXX object CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj
-        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++   -v -o CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp
+        Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_3e323/fast
+        /usr/bin/gmake  -f CMakeFiles/cmTC_3e323.dir/build.make CMakeFiles/cmTC_3e323.dir/build
+        gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta'
+        Building CXX object CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj
+        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++   -v -o CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp
         Using built-in specs.
         COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++
         Target: powerpc-apple-macos
@@ -265,8 +265,8 @@ events:
         Thread model: aix
         Supported LTO compression algorithms: zlib zstd
         gcc version 12.2.0 (GCC) 
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/'
-         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1plus -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_a00ed.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -version -o /tmp/claude-1000/ccwH9rjh.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/'
+         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1plus -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_3e323.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -version -o /tmp/claude-1000/ccpwiMV8.s
         GNU C++17 (GCC) version 12.2.0 (powerpc-apple-macos)
         	compiled by GNU C version 13.3.0, GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version none
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
@@ -284,14 +284,14 @@ events:
         	compiled by GNU C version 13.3.0, GMP version 6.3.0, MPFR version 4.2.1, MPC version 1.3.1, isl version none
         GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072
         Compiler executable checksum: 8fce7e5f832d2027b7460d3baf727b98
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/'
-         /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj /tmp/claude-1000/ccwH9rjh.s
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/'
+         /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj /tmp/claude-1000/ccpwiMV8.s
         COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/
         LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.'
-        Linking CXX executable cmTC_a00ed
-        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a00ed.dir/link.txt --verbose=1
-        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++  -v CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_a00ed 
+        COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.'
+        Linking CXX executable cmTC_3e323
+        /usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3e323.dir/link.txt --verbose=1
+        /home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++  -v CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_3e323 
         Using built-in specs.
         COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++
         COLLECT_LTO_WRAPPER=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/lto-wrapper
@@ -302,10 +302,10 @@ events:
         gcc version 12.2.0 (GCC) 
         COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/
         LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a00ed' '-dumpdir' 'cmTC_a00ed.'
-         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_a00ed -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -lstdc++ -lm --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group
-        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a00ed' '-dumpdir' 'cmTC_a00ed.'
-        gmake[1]: Leaving directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx'
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e323' '-dumpdir' 'cmTC_3e323.'
+         /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_3e323 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -lstdc++ -lm --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group
+        COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e323' '-dumpdir' 'cmTC_3e323.'
+        gmake[1]: Leaving directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta'
         
       exitCode: 0
   -
@@ -343,13 +343,13 @@ events:
     message: |
       Parsed CXX implicit link information:
         link line regex: [^( *|.*[/\\])(powerpc-apple-macos-ld|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
-        ignore line: [Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx']
+        ignore line: [Change Dir: '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta']
         ignore line: []
-        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_a00ed/fast]
-        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_a00ed.dir/build.make CMakeFiles/cmTC_a00ed.dir/build]
-        ignore line: [gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-OwnFLx']
-        ignore line: [Building CXX object CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj]
-        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++   -v -o CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Run Build Command(s): /usr/bin/cmake -E env VERBOSE=1 /usr/bin/gmake -f Makefile cmTC_3e323/fast]
+        ignore line: [/usr/bin/gmake  -f CMakeFiles/cmTC_3e323.dir/build.make CMakeFiles/cmTC_3e323.dir/build]
+        ignore line: [gmake[1]: Entering directory '/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/CMakeScratch/TryCompile-8zLAta']
+        ignore line: [Building CXX object CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj]
+        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++   -v -o CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -c /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++]
         ignore line: [Target: powerpc-apple-macos]
@@ -357,8 +357,8 @@ events:
         ignore line: [Thread model: aix]
         ignore line: [Supported LTO compression algorithms: zlib zstd]
         ignore line: [gcc version 12.2.0 (GCC) ]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/']
-        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1plus -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_a00ed.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -version -o /tmp/claude-1000/ccwH9rjh.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/']
+        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/cc1plus -quiet -v -Wno-trigraphs /usr/share/cmake-3.28/Modules/CMakeCXXCompilerABI.cpp -quiet -dumpdir CMakeFiles/cmTC_3e323.dir/ -dumpbase CMakeCXXCompilerABI.cpp.cpp -dumpbase-ext .cpp -version -o /tmp/claude-1000/ccpwiMV8.s]
         ignore line: [GNU C++17 (GCC) version 12.2.0 (powerpc-apple-macos)]
         ignore line: [	compiled by GNU C version 13.3.0  GMP version 6.3.0  MPFR version 4.2.1  MPC version 1.3.1  isl version none]
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
@@ -376,14 +376,14 @@ events:
         ignore line: [	compiled by GNU C version 13.3.0  GMP version 6.3.0  MPFR version 4.2.1  MPC version 1.3.1  isl version none]
         ignore line: [GGC heuristics: --param ggc-min-expand=100 --param ggc-min-heapsize=131072]
         ignore line: [Compiler executable checksum: 8fce7e5f832d2027b7460d3baf727b98]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/']
-        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj /tmp/claude-1000/ccwH9rjh.s]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/']
+        ignore line: [ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/as -o CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj /tmp/claude-1000/ccpwiMV8.s]
         ignore line: [COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/]
         ignore line: [LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.']
-        ignore line: [Linking CXX executable cmTC_a00ed]
-        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_a00ed.dir/link.txt --verbose=1]
-        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++  -v CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_a00ed ]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj' '-c' '-dumpdir' 'CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.']
+        ignore line: [Linking CXX executable cmTC_3e323]
+        ignore line: [/usr/bin/cmake -E cmake_link_script CMakeFiles/cmTC_3e323.dir/link.txt --verbose=1]
+        ignore line: [/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++  -v CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -o cmTC_3e323 ]
         ignore line: [Using built-in specs.]
         ignore line: [COLLECT_GCC=/home/yllan/Projects/Retro68-build/toolchain/bin/powerpc-apple-macos-g++]
         ignore line: [COLLECT_LTO_WRAPPER=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/lto-wrapper]
@@ -394,8 +394,8 @@ events:
         ignore line: [gcc version 12.2.0 (GCC) ]
         ignore line: [COMPILER_PATH=/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/bin/]
         ignore line: [LIBRARY_PATH=/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/:/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib/]
-        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_a00ed' '-dumpdir' 'cmTC_a00ed.']
-        link line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_a00ed -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj -lstdc++ -lm --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group]
+        ignore line: [COLLECT_GCC_OPTIONS='-v' '-o' 'cmTC_3e323' '-dumpdir' 'cmTC_3e323.']
+        link line: [ /home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2 -btextro -bhalt:4 -bnodelcsect --no-check-sections -undefined=_consolewrite -o cmTC_3e323 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0 -L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj -lstdc++ -lm --start-group -lgcc -lc -lretrocrt -lInterfaceLib --end-group]
           arg [/home/yllan/Projects/Retro68-build/toolchain/libexec/gcc/powerpc-apple-macos/12.2.0/collect2] ==> ignore
           arg [-btextro] ==> ignore
           arg [-bhalt:4] ==> ignore
@@ -403,10 +403,10 @@ events:
           arg [--no-check-sections] ==> ignore
           arg [-undefined=_consolewrite] ==> ignore
           arg [-o] ==> ignore
-          arg [cmTC_a00ed] ==> ignore
+          arg [cmTC_3e323] ==> ignore
           arg [-L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0] ==> dir [/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0]
           arg [-L/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib] ==> dir [/home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/../../../../powerpc-apple-macos/lib]
-          arg [CMakeFiles/cmTC_a00ed.dir/CMakeCXXCompilerABI.cpp.obj] ==> ignore
+          arg [CMakeFiles/cmTC_3e323.dir/CMakeCXXCompilerABI.cpp.obj] ==> ignore
           arg [-lstdc++] ==> lib [stdc++]
           arg [-lm] ==> lib [m]
           arg [--start-group] ==> ignore

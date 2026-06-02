@@ -24,3 +24,16 @@ add_application(cntest CONSOLE
 target_include_directories(cntest PRIVATE
     ${CMAKE_CURRENT_SOURCE_DIR}/../include
     ${CMAKE_CURRENT_SOURCE_DIR}/../tests)
+
+# HTTP GET over Open Transport (L-D). Needs Apple UI (OT headers) + OT libs.
+add_application(cnhttp CONSOLE
+    FILES
+        http_get.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_ot.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_request.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_http.c
+        ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_url.c
+)
+target_compile_definitions(cnhttp PRIVATE CN_WITH_OT=1)
+target_include_directories(cnhttp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
+target_link_libraries(cnhttp OpenTransportAppPPC OpenTransportLib OpenTptInternetLib)

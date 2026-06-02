@@ -125,4 +125,6 @@ set(CMAKE_MAKEFILE_PRODUCTS
 set(CMAKE_DEPEND_INFO_FILES
   "CMakeFiles/cntest.dir/DependInfo.cmake"
   "CMakeFiles/cntest_APPL.dir/DependInfo.cmake"
+  "CMakeFiles/cnhttp.dir/DependInfo.cmake"
+  "CMakeFiles/cnhttp_APPL.dir/DependInfo.cmake"
   )

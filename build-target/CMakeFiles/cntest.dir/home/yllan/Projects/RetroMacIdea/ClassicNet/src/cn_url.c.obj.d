@@ -2,11 +2,8 @@ CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.o
  /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_url.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_types.h \
- /home/yllan/Projects/Retro68-build/toolchain/multiversal/CIncludes/MacTypes.h \
- /home/yllan/Projects/Retro68-build/toolchain/multiversal/CIncludes/Multiverse.h \
- /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stdint.h \
- /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stdbool.h \
- /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stddef.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacTypes.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/ConditionalMacros.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_errors.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/string.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
@@ -17,6 +14,7 @@ CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.o
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/features.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/reent.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
+ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stddef.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_types.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_types.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h \

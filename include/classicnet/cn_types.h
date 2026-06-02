@@ -31,23 +31,13 @@ typedef unsigned int   UInt32;
 
 #else  /* real Mac target */
 
-#include <MacTypes.h>   /* Boolean, UInt8/16/32, SInt16/32, OSErr, noErr */
-
 /*
- * Retro68's (and classic non-Carbon) interfaces define OSErr (16-bit) but not
- * OSStatus (the 32-bit Carbon-era type).  We use OSStatus throughout
- * (DESIGN.md decision #2), so provide it.  No header in CIncludes typedefs it,
- * so this is the single definition.
+ * Apple's Universal Interfaces (3.4) provide OSStatus, Boolean, UInt*, OSErr,
+ * noErr, true and false. MacTypes.h pulls them in. (When the toolchain was
+ * built against the open-source multiversal interfaces instead, OSStatus was
+ * missing and had to be defined here -- no longer needed with UI 3.4.)
  */
-typedef SInt32 OSStatus;
-
-#ifndef true
-#define true  1
-#endif
-#ifndef false
-#define false 0
-#endif
-/* noErr is already provided as an enum constant by MacTypes.h. */
+#include <MacTypes.h>
 
 #endif /* CN_HOST */
 

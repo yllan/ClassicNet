@@ -142,6 +142,32 @@ cntest_APPL/fast:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest_APPL.dir/build.make CMakeFiles/cntest_APPL.dir/build
 .PHONY : cntest_APPL/fast
 
+#=============================================================================
+# Target rules for targets named cnhttp
+
+# Build rule for target.
+cnhttp: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cnhttp
+.PHONY : cnhttp
+
+# fast build rule for target.
+cnhttp/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/build
+.PHONY : cnhttp/fast
+
+#=============================================================================
+# Target rules for targets named cnhttp_APPL
+
+# Build rule for target.
+cnhttp_APPL: cmake_check_build_system
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 cnhttp_APPL
+.PHONY : cnhttp_APPL
+
+# fast build rule for target.
+cnhttp_APPL/fast:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp_APPL.dir/build.make CMakeFiles/cnhttp_APPL.dir/build
+.PHONY : cnhttp_APPL/fast
+
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_base64.obj: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_base64.c.obj
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_base64.obj
 
@@ -172,6 +198,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.obj: home/yllan/Projects
 # target to build an object file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.obj
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.obj
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.i: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.i
@@ -180,6 +207,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.i: home/yllan/Projects/R
 # target to preprocess a source file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.i
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.i
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.s: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.s
@@ -188,7 +216,32 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.s: home/yllan/Projects/R
 # target to generate assembly for a file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.s
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.c.s
+
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.obj: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.obj
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.obj
+
+# target to build an object file
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.obj
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.obj
+
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.i: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.i
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.i
+
+# target to preprocess a source file
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.i
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.i
+
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.s: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.s
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.s
+
+# target to generate assembly for a file
+home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.s
+.PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.c.s
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.obj: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.obj
@@ -196,6 +249,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.obj: home/yllan/Proje
 # target to build an object file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.obj
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.i: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.i
@@ -204,6 +258,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.i: home/yllan/Project
 # target to preprocess a source file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.i
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.i
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.s: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.s
@@ -212,6 +267,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.s: home/yllan/Project
 # target to generate assembly for a file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.s
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.c.s
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_sha1.obj: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_sha1.c.obj
@@ -244,6 +300,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.obj: home/yllan/Projects/
 # target to build an object file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.obj:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.obj
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.obj
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.obj
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.i: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.i
@@ -252,6 +309,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.i: home/yllan/Projects/Re
 # target to preprocess a source file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.i:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.i
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.i
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.i
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.s: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.s
@@ -260,6 +318,7 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.s: home/yllan/Projects/Re
 # target to generate assembly for a file
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.s
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.s
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_url.c.s
 
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.obj: home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.obj
@@ -285,6 +344,30 @@ home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.s: home/yllan/Projects/Ret
 home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.s:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.s
 .PHONY : home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.s
+
+http_get.obj: http_get.c.obj
+.PHONY : http_get.obj
+
+# target to build an object file
+http_get.c.obj:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/http_get.c.obj
+.PHONY : http_get.c.obj
+
+http_get.i: http_get.c.i
+.PHONY : http_get.i
+
+# target to preprocess a source file
+http_get.c.i:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/http_get.c.i
+.PHONY : http_get.c.i
+
+http_get.s: http_get.c.s
+.PHONY : http_get.s
+
+# target to generate assembly for a file
+http_get.c.s:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/http_get.c.s
+.PHONY : http_get.c.s
 
 test_runner.obj: test_runner.c.obj
 .PHONY : test_runner.obj
@@ -318,7 +401,9 @@ help:
 	@echo "... depend"
 	@echo "... edit_cache"
 	@echo "... rebuild_cache"
+	@echo "... cnhttp_APPL"
 	@echo "... cntest_APPL"
+	@echo "... cnhttp"
 	@echo "... cntest"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_base64.obj"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_base64.i"
@@ -326,6 +411,9 @@ help:
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.obj"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.i"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_http.s"
+	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.obj"
+	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.i"
+	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ot.s"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.obj"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.i"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_request.s"
@@ -338,6 +426,9 @@ help:
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.obj"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.i"
 	@echo "... home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.s"
+	@echo "... http_get.obj"
+	@echo "... http_get.i"
+	@echo "... http_get.s"
 	@echo "... test_runner.obj"
 	@echo "... test_runner.i"
 	@echo "... test_runner.s"

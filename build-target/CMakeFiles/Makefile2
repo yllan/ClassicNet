@@ -65,6 +65,8 @@ CMAKE_BINARY_DIR = /home/yllan/Projects/RetroMacIdea/ClassicNet/build-target
 # The main recursive "all" target.
 all: CMakeFiles/cntest.dir/all
 all: CMakeFiles/cntest_APPL.dir/all
+all: CMakeFiles/cnhttp.dir/all
+all: CMakeFiles/cnhttp_APPL.dir/all
 .PHONY : all
 
 # The main recursive "preinstall" target.
@@ -74,6 +76,8 @@ preinstall:
 # The main recursive "clean" target.
 clean: CMakeFiles/cntest.dir/clean
 clean: CMakeFiles/cntest_APPL.dir/clean
+clean: CMakeFiles/cnhttp.dir/clean
+clean: CMakeFiles/cnhttp_APPL.dir/clean
 .PHONY : clean
 
 #=============================================================================
@@ -83,7 +87,7 @@ clean: CMakeFiles/cntest_APPL.dir/clean
 CMakeFiles/cntest.dir/all:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest.dir/build.make CMakeFiles/cntest.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=1,2,3,4,5,6,7,8 "Built target cntest"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=9,10,11,12,13,14,15,16 "Built target cntest"
 .PHONY : CMakeFiles/cntest.dir/all
 
 # Build rule for subdir invocation for target.
@@ -109,7 +113,7 @@ CMakeFiles/cntest.dir/clean:
 CMakeFiles/cntest_APPL.dir/all: CMakeFiles/cntest.dir/all
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest_APPL.dir/build.make CMakeFiles/cntest_APPL.dir/depend
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest_APPL.dir/build.make CMakeFiles/cntest_APPL.dir/build
-	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=9,10 "Built target cntest_APPL"
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=17,18 "Built target cntest_APPL"
 .PHONY : CMakeFiles/cntest_APPL.dir/all
 
 # Build rule for subdir invocation for target.
@@ -127,6 +131,58 @@ cntest_APPL: CMakeFiles/cntest_APPL.dir/rule
 CMakeFiles/cntest_APPL.dir/clean:
 	$(MAKE) $(MAKESILENT) -f CMakeFiles/cntest_APPL.dir/build.make CMakeFiles/cntest_APPL.dir/clean
 .PHONY : CMakeFiles/cntest_APPL.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/cnhttp.dir
+
+# All Build rule for target.
+CMakeFiles/cnhttp.dir/all:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=1,2,3,4,5,6 "Built target cnhttp"
+.PHONY : CMakeFiles/cnhttp.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/cnhttp.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles 6
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/cnhttp.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles 0
+.PHONY : CMakeFiles/cnhttp.dir/rule
+
+# Convenience name for target.
+cnhttp: CMakeFiles/cnhttp.dir/rule
+.PHONY : cnhttp
+
+# clean rule for target.
+CMakeFiles/cnhttp.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp.dir/build.make CMakeFiles/cnhttp.dir/clean
+.PHONY : CMakeFiles/cnhttp.dir/clean
+
+#=============================================================================
+# Target rules for target CMakeFiles/cnhttp_APPL.dir
+
+# All Build rule for target.
+CMakeFiles/cnhttp_APPL.dir/all: CMakeFiles/cnhttp.dir/all
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp_APPL.dir/build.make CMakeFiles/cnhttp_APPL.dir/depend
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp_APPL.dir/build.make CMakeFiles/cnhttp_APPL.dir/build
+	@$(CMAKE_COMMAND) -E cmake_echo_color "--switch=$(COLOR)" --progress-dir=/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles --progress-num=7,8 "Built target cnhttp_APPL"
+.PHONY : CMakeFiles/cnhttp_APPL.dir/all
+
+# Build rule for subdir invocation for target.
+CMakeFiles/cnhttp_APPL.dir/rule: cmake_check_build_system
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles 8
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/Makefile2 CMakeFiles/cnhttp_APPL.dir/all
+	$(CMAKE_COMMAND) -E cmake_progress_start /home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles 0
+.PHONY : CMakeFiles/cnhttp_APPL.dir/rule
+
+# Convenience name for target.
+cnhttp_APPL: CMakeFiles/cnhttp_APPL.dir/rule
+.PHONY : cnhttp_APPL
+
+# clean rule for target.
+CMakeFiles/cnhttp_APPL.dir/clean:
+	$(MAKE) $(MAKESILENT) -f CMakeFiles/cnhttp_APPL.dir/build.make CMakeFiles/cnhttp_APPL.dir/clean
+.PHONY : CMakeFiles/cnhttp_APPL.dir/clean
 
 #=============================================================================
 # Special targets to cleanup operation of make.
