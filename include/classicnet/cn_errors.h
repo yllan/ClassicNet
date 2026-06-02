@@ -44,6 +44,7 @@ enum {
     kCNErrWouldBlock        = -30070,  /* operation pending; pump again later */
     kCNErrResponseTooLarge  = -30071,  /* response head exceeds the buffer */
     kCNErrConnClosed        = -30072,  /* peer closed before the response completed */
+    kCNErrNetIo             = -30073,  /* generic transport I/O failure (any CNTransport) */
 
     /* TLS */
     kCNErrTlsInit           = -30080,  /* TLS context / config setup failed */

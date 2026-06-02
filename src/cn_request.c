@@ -1,24 +1,11 @@
 #include "classicnet/cn_request.h"
 #include "classicnet/cn_errors.h"
+#include "cn_ascii.h"
 
 #include <string.h>
 
 enum { ST_CONNECT, ST_SEND, ST_HEAD, ST_BODY, ST_DONE, ST_ERR };
 enum { BM_LENGTH, BM_CHUNKED, BM_EOF };
-
-static char lc(char c)
-{
-    return (c >= 'A' && c <= 'Z') ? (char)(c - 'A' + 'a') : c;
-}
-
-static int ci_eq(const char *a, const char *b)
-{
-    while (*a && *b) {
-        if (lc(*a) != lc(*b)) return 0;
-        a++; b++;
-    }
-    return *a == *b;
-}
 
 /* case-insensitive substring test */
 static int ci_has(const char *hay, const char *needle)
@@ -26,7 +13,7 @@ static int ci_has(const char *hay, const char *needle)
     UInt32 i, j;
     for (i = 0; hay[i] != '\0'; i++) {
         for (j = 0; needle[j] != '\0'; j++) {
-            if (lc(hay[i + j]) != lc(needle[j])) break;
+            if (cn_ascii_lower(hay[i + j]) != cn_ascii_lower(needle[j])) break;
         }
         if (needle[j] == '\0') return 1;
     }
@@ -102,9 +89,9 @@ static OSStatus enter_body(CNRequest *r)
     for (i = 0; i < r->resp.headerCount; i++) {
         const char *n = r->resp.headers[i].name;
         const char *v = r->resp.headers[i].value;
-        if (ci_eq(n, "Transfer-Encoding") && ci_has(v, "chunked")) {
+        if (cn_ascii_ci_eq(n, "Transfer-Encoding") && ci_has(v, "chunked")) {
             r->bodyMode = BM_CHUNKED;
-        } else if (ci_eq(n, "Content-Length")) {
+        } else if (cn_ascii_ci_eq(n, "Content-Length")) {
             UInt32 cl;
             OSStatus ps = parse_u32(v, &cl);
             if (ps != noErr) return req_fail(r, ps);

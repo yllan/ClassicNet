@@ -13,22 +13,42 @@ CMakeFiles/cnhttp.dir/http_get.c.obj: \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_request.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_http.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_errors.h \
- /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/stdio.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Events.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/OSUtils.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/MacMemory.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Patches.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/DateTimeUtils.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFString.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFBase.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFArray.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFData.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFDictionary.h \
+ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stdarg.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Quickdraw.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Components.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Files.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/TextCommon.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/UTCUtils.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/Finder.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/QuickdrawText.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/IntlResources.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGContext.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGBase.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/math.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/reent.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/newlib.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_newlib_version.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/config.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/ieeefp.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/features.h \
- /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/cdefs.h \
- /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h \
  /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stddef.h \
- /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stdarg.h \
- /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/reent.h \
- /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_types.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/_default_types.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/lock.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/cdefs.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/types.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_stdint.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/endian.h \
@@ -41,6 +61,16 @@ CMakeFiles/cnhttp.dir/http_get.c.obj: \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_pthreadtypes.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/sched.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/machine/types.h \
+ /home/yllan/Projects/Retro68-build/toolchain/lib/gcc/powerpc-apple-macos/12.2.0/include/stdint.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGAffineTransform.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGGeometry.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGColorSpace.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGDataProvider.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CFURL.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGFont.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGImage.h \
+ /home/yllan/Projects/Retro68-build/toolchain/universal/CIncludes/CGPDFDocument.h \
+ /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/stdio.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/stdio.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/string.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/sys/_locale.h \

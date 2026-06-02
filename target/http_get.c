@@ -8,6 +8,7 @@
 #include "classicnet/cn_request.h"
 #include "classicnet/cn_errors.h"
 
+#include <Events.h>
 #include <stdio.h>
 #include <string.h>
 
@@ -27,7 +28,7 @@ int main(void)
     CNRequest req;
     Cap cap;
     CNRequestCallbacks cb;
-    long guard = 0;
+    UInt32 t0;
     const char *host = "10.0.2.2";
     UInt16 port = 8080;
 
@@ -44,7 +45,8 @@ int main(void)
     }
     printf("connecting to %s:%u ...\r\n", host, (unsigned)port);
 
-    while (!CN_RequestDone(&req) && guard++ < 3000000)
+    t0 = TickCount();
+    while (!CN_RequestDone(&req) && (TickCount() - t0) < 45UL * 60UL) /* 45 s */
         CN_RequestPump(&req);
 
     if (cap.done)

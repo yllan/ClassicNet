@@ -22,7 +22,7 @@ static OSStatus htcp_poll(CNTransport *t)
     pfd.fd = h->fd; pfd.events = POLLOUT; pfd.revents = 0;
     if (poll(&pfd, 1, 0) <= 0) return kCNErrWouldBlock;
     if (getsockopt(h->fd, SOL_SOCKET, SO_ERROR, &so_err, &sl) != 0 || so_err != 0)
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
     h->connected = 1;
     return noErr;
 }
@@ -33,7 +33,7 @@ static OSStatus htcp_send(CNTransport *t, const void *data, UInt32 len, UInt32 *
     ssize_t n = send(h->fd, data, len, 0);
     if (n >= 0) { *sent = (UInt32)n; return noErr; }
     if (errno == EAGAIN || errno == EWOULDBLOCK) { *sent = 0; return noErr; }
-    return kCNErrTlsIo;
+    return kCNErrNetIo;
 }
 
 static OSStatus htcp_recv(CNTransport *t, void *buf, UInt32 cap, UInt32 *got, Boolean *eof)
@@ -44,7 +44,7 @@ static OSStatus htcp_recv(CNTransport *t, void *buf, UInt32 cap, UInt32 *got, Bo
     if (n > 0) { *got = (UInt32)n; return noErr; }
     if (n == 0) { *got = 0; *eof = true; return noErr; }
     if (errno == EAGAIN || errno == EWOULDBLOCK) { *got = 0; return noErr; }
-    return kCNErrTlsIo;
+    return kCNErrNetIo;
 }
 
 static void htcp_close(CNTransport *t)
@@ -73,7 +73,7 @@ OSStatus HostTcpConnect(HostTcp *h, const char *ip, UInt16 port, CNTransport **o
         h->connected = 1;
     } else if (errno != EINPROGRESS) {
         close(h->fd);
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
     }
 
     h->base.poll = htcp_poll;

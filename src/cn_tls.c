@@ -18,10 +18,8 @@ static int tls_bio_send(void *ctx, const unsigned char *buf, size_t len)
     CNTlsTransport *tls = (CNTlsTransport *)ctx;
     UInt32 sent = 0;
     OSStatus s = tls->inner->send(tls->inner, buf, (UInt32)len, &sent);
-    tls->sendCalls++;
     if (s != noErr) return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     if (sent == 0) return MBEDTLS_ERR_SSL_WANT_WRITE;
-    tls->nSent += sent;
     return (int)sent;
 }
 
@@ -31,8 +29,6 @@ static int tls_bio_recv(void *ctx, unsigned char *buf, size_t len)
     UInt32 got = 0;
     Boolean eof = false;
     OSStatus s = tls->inner->recv(tls->inner, buf, (UInt32)len, &got, &eof);
-    tls->recvCalls++;
-    if (got > 0) tls->nRecv += got;
     if (s != noErr) return MBEDTLS_ERR_SSL_INTERNAL_ERROR;
     if (got == 0) {
         if (eof) return 0;                 /* clean EOF */
@@ -51,7 +47,6 @@ static OSStatus tls_poll(CNTransport *t)
     if (s != noErr) return s;                     /* would-block or error */
     if (tls->handshakeDone) return noErr;
 
-    tls->handshakeStarted = 1;
     rc = mbedtls_ssl_handshake(&tls->ssl);
     if (rc == 0) { tls->handshakeDone = 1; return noErr; }
     if (rc == MBEDTLS_ERR_SSL_WANT_READ || rc == MBEDTLS_ERR_SSL_WANT_WRITE)

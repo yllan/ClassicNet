@@ -2,6 +2,7 @@
 #include "classicnet/cn_errors.h"
 #include "classicnet/cn_sha1.h"
 #include "classicnet/cn_base64.h"
+#include "cn_ascii.h"
 
 #include <string.h>
 
@@ -133,18 +134,6 @@ OSStatus CN_WSBuildUpgrade(const char *host, const char *path,
     return CN_BuildRequest("GET", path, host, hdrs, 4, out, outCap, outLen);
 }
 
-static int cn_ci_eq(const char *a, const char *b)
-{
-    while (*a && *b) {
-        char ca = *a, cb = *b;
-        if (ca >= 'A' && ca <= 'Z') ca = (char)(ca - 'A' + 'a');
-        if (cb >= 'A' && cb <= 'Z') cb = (char)(cb - 'A' + 'a');
-        if (ca != cb) return 0;
-        a++; b++;
-    }
-    return *a == *b;
-}
-
 OSStatus CN_WSCheckUpgradeResponse(const CNHttpResponse *resp,
                                    const char *expectedAccept)
 {
@@ -154,7 +143,7 @@ OSStatus CN_WSCheckUpgradeResponse(const CNHttpResponse *resp,
     if (resp->status != 101)
         return kCNErrHandshakeFailed;
     for (i = 0; i < resp->headerCount; i++) {
-        if (cn_ci_eq(resp->headers[i].name, "Sec-WebSocket-Accept")) {
+        if (cn_ascii_ci_eq(resp->headers[i].name, "Sec-WebSocket-Accept")) {
             if (strcmp(resp->headers[i].value, expectedAccept) == 0)
                 return noErr;
             return kCNErrHandshakeFailed;

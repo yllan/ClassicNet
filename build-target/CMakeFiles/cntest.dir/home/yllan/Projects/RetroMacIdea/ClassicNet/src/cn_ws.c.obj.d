@@ -8,6 +8,7 @@ CMakeFiles/cntest.dir/home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ws.c.ob
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_errors.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_sha1.h \
  /home/yllan/Projects/RetroMacIdea/ClassicNet/target/../include/classicnet/cn_base64.h \
+ /home/yllan/Projects/RetroMacIdea/ClassicNet/src/cn_ascii.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/string.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/_ansi.h \
  /home/yllan/Projects/Retro68-build/toolchain/powerpc-apple-macos/include/newlib.h \

@@ -42,7 +42,7 @@ static OSStatus ot_poll(CNTransport *bt)
         if (res == noErr) { t->state = OT_ST_CONNECTED; return noErr; }
         if (res == kOTNoDataErr) { t->state = OT_ST_CONNECTING; return kCNErrWouldBlock; }
         t->state = OT_ST_ERR;
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
     }
     case OT_ST_CONNECTING: {
         OTResult look = OTLook(t->ep);
@@ -54,14 +54,14 @@ static OSStatus ot_poll(CNTransport *bt)
         if (look == T_DISCONNECT) {
             OTRcvDisconnect(t->ep, NULL);
             t->state = OT_ST_ERR;
-            return kCNErrConnClosed;
+            return kCNErrNetIo;
         }
         return kCNErrWouldBlock;
     }
     case OT_ST_CONNECTED:
         return noErr;
     default:
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
     }
 }
 
@@ -71,7 +71,7 @@ static OSStatus ot_send(CNTransport *bt, const void *data, UInt32 len, UInt32 *s
     OTResult r = OTSnd(t->ep, (void *)data, len, 0);
     if (r >= 0) { *sent = (UInt32)r; return noErr; }
     if (r == kOTFlowErr || r == kOTNoDataErr || r == kOTLookErr) { *sent = 0; return noErr; }
-    return kCNErrConnClosed;
+    return kCNErrNetIo;
 }
 
 static OSStatus ot_recv(CNTransport *bt, void *buf, UInt32 cap, UInt32 *got, Boolean *eof)
@@ -92,7 +92,7 @@ static OSStatus ot_recv(CNTransport *bt, void *buf, UInt32 cap, UInt32 *got, Boo
         return noErr;
     }
     if (r == 0) { *got = 0; *eof = true; return noErr; }
-    return kCNErrConnClosed;
+    return kCNErrNetIo;
 }
 
 static void ot_close(CNTransport *bt)
@@ -116,14 +116,14 @@ OSStatus CN_OTCreate(CNOTTransport *t, const char *host, UInt16 port,
 
     t->ep = OTOpenEndpoint(OTCreateConfiguration(kTCPName), 0, NULL, &err);
     if (err != noErr || t->ep == kOTInvalidEndpointRef)
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
 
     OTSetSynchronous(t->ep);
     OTSetNonBlocking(t->ep);
     OTUseSyncIdleEvents(t->ep, false);
     if (OTBind(t->ep, NULL, NULL) != noErr) {
         OTCloseProvider(t->ep);
-        return kCNErrConnClosed;
+        return kCNErrNetIo;
     }
 
     make_hostport(t->hostport, (UInt32)sizeof(t->hostport), host, port);
