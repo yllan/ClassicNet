@@ -1,0 +1,4 @@
+/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/cntest.dir
+/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/cntest_APPL.dir
+/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/edit_cache.dir
+/home/yllan/Projects/RetroMacIdea/ClassicNet/build-target/CMakeFiles/rebuild_cache.dir
