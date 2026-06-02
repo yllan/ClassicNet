@@ -2,6 +2,8 @@
 #include "classicnet/cn_errors.h"
 #include "cn_test.h"
 
+#include <string.h>
+
 static void test_small_unmasked_text(void)
 {
     /* FIN + text(0x1), unmasked, len 5 */
@@ -95,6 +97,14 @@ static void test_incomplete_headers(void)
     CN_CHECK(CN_WSParseFrame(need_mask, sizeof(need_mask), &fr) == kCNErrFrameIncomplete);
 }
 
+static void test_accept_key(void)
+{
+    /* RFC 6455 4.2.2 worked example. */
+    char accept[29];
+    CN_CHECK(CN_WSAcceptKey("dGhlIHNhbXBsZSBub25jZQ==", accept) == noErr);
+    CN_CHECK(strcmp(accept, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
+}
+
 int main(void)
 {
     CN_RUN(test_small_unmasked_text);
@@ -104,5 +114,6 @@ int main(void)
     CN_RUN(test_frame_too_large);
     CN_RUN(test_rejects_bad_frames);
     CN_RUN(test_incomplete_headers);
+    CN_RUN(test_accept_key);
     return CN_SUMMARY();
 }

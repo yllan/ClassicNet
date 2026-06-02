@@ -1,5 +1,9 @@
 #include "classicnet/cn_ws.h"
 #include "classicnet/cn_errors.h"
+#include "classicnet/cn_sha1.h"
+#include "classicnet/cn_base64.h"
+
+#include <string.h>
 
 OSStatus CN_WSParseFrame(const unsigned char *buf, UInt32 len, CNWSFrame *out)
 {
@@ -83,4 +87,22 @@ void CN_WSUnmask(unsigned char *data, UInt32 len, const UInt8 maskKey[4])
     UInt32 k;
     for (k = 0; k < len; k++)
         data[k] = (unsigned char)(data[k] ^ maskKey[k & 3]);
+}
+
+OSStatus CN_WSAcceptKey(const char *clientKey, char out[29])
+{
+    static const char kGuid[] = "258EAFA5-E914-47DA-95CA-C5AB0DC85B11";
+    CNSha1 c;
+    UInt8  digest[CN_SHA1_DIGEST_LEN];
+    UInt32 outLen;
+
+    if (clientKey == 0 || out == 0)
+        return kCNErrBadParam;
+
+    CN_Sha1Init(&c);
+    CN_Sha1Update(&c, clientKey, (UInt32)strlen(clientKey));
+    CN_Sha1Update(&c, kGuid, (UInt32)(sizeof(kGuid) - 1));
+    CN_Sha1Final(&c, digest);
+
+    return CN_Base64Encode(digest, CN_SHA1_DIGEST_LEN, out, 29, &outLen);
 }

@@ -40,6 +40,13 @@ OSStatus CN_WSParseFrame(const unsigned char *buf, UInt32 len, CNWSFrame *out);
 /* XOR-unmask len bytes of data in place with a 4-byte masking key. */
 void CN_WSUnmask(unsigned char *data, UInt32 len, const UInt8 maskKey[4]);
 
+/*
+ * Compute the Sec-WebSocket-Accept value for a client's Sec-WebSocket-Key
+ * (RFC 6455 4.2.2): base64(SHA1(key + magic GUID)).  out must hold >= 29 bytes
+ * (28 base64 chars + NUL).
+ */
+OSStatus CN_WSAcceptKey(const char *clientKey, char out[29]);
+
 #ifdef __cplusplus
 }
 #endif

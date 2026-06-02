@@ -30,7 +30,14 @@ enum {
     /* HTTP chunked transfer-encoding decoder */
     kCNErrChunkIncomplete   = -30030,  /* need more bytes; not an error per se */
     kCNErrBadChunk          = -30031,
-    kCNErrChunkOverflow     = -30032   /* decoded data exceeds the output buffer */
+    kCNErrChunkOverflow     = -30032,  /* decoded data exceeds the output buffer */
+
+    /* Base64 */
+    kCNErrBadBase64         = -30040,  /* malformed base64 input */
+    kCNErrBase64Overflow    = -30041,  /* result exceeds the output buffer */
+
+    /* generic */
+    kCNErrBadParam          = -30050
 };
 
 #endif /* CLASSICNET_CN_ERRORS_H */
