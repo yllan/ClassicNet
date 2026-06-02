@@ -138,5 +138,10 @@ int main(void)
     CN_RUN(smoke_base64);
     CN_RUN(smoke_ws_accept);
     CN_RUN(smoke_request_flow);
-    return CN_SUMMARY();
+    CN_SUMMARY();
+    /* Keep the Retro68 console window open so the result is readable. */
+    printf("\n--- Press Return to quit. ---\n");
+    fflush(stdout);
+    getchar();
+    return cn_tests_failed == 0 ? 0 : 1;
 }

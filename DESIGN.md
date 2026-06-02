@@ -179,5 +179,6 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 - **型別 seam 的一個真實坑** —— Retro68 multiversal interfaces 定義 `OSErr`（16-bit）但**無 `OSStatus`**（Carbon 時代型別）。已在 `cn_types.h` 的 Mac 分支補 `typedef SInt32 OSStatus`；決策 #2（用 OSStatus）維持不變。
 - **L-A host 測試 ✅** —— CMake + AddressSanitizer + UBSan，`ctest` 跑 `cn_url` / `cn_http` 兩組全過。
 - **Fuzzing（QA #1）✅** —— libFuzzer（clang）對兩個 parser 各跑千萬級次數無 crash／無 OOB／無 UBSan。見 `scripts/run-fuzz.sh`。
+- **L-C 真機驗證通過 ✅** —— on-target test runner（`target/`）編成 PowerPC OS 9 app，在 **QEMU 上的真實 OS 9.2.2** 跑出 **15 checks, 0 failed**。涵蓋 URL/HTTP parser、WebSocket 16/64-bit 長度欄位、SHA-1、Base64、WebSocket accept、非同步 request 狀態機 —— 證明在**大端 PowerPC** 上行為與 host 一致、零端序 bug。流程：`scripts/build-target-iso.sh`（Retro68 編譯 → MacBinary → ISO9660）+ `CN_TOOLS_DISK=... scripts/run-emulator.sh run`（OS 9 用 StuffIt Expander 解 MacBinary 後執行）。
 - **真實 HTTPS 已跑通 ✅** —— 完整 stack（`CNRequest` → `CN_Tls`（mbedTLS 2.28 LTS）→ host TCP）對 `openssl s_server` 完成真實 TLS 握手並取得 HTTP 200。TLS 層用 `-DCN_WITH_MBEDTLS=ON -DMBEDTLS_ROOT=...` 啟用；mbedTLS 的非阻塞 BIO（WANT_READ/WRITE）直接對應 `CNTransport` 的 would-block 語意。Mac port 待辦：vendoring mbedTLS 原始碼以 Retro68 編譯、自訂熵源、CA bundle。
 - **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。
