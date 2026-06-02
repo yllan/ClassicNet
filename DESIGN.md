@@ -179,4 +179,5 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 - **型別 seam 的一個真實坑** —— Retro68 multiversal interfaces 定義 `OSErr`（16-bit）但**無 `OSStatus`**（Carbon 時代型別）。已在 `cn_types.h` 的 Mac 分支補 `typedef SInt32 OSStatus`；決策 #2（用 OSStatus）維持不變。
 - **L-A host 測試 ✅** —— CMake + AddressSanitizer + UBSan，`ctest` 跑 `cn_url` / `cn_http` 兩組全過。
 - **Fuzzing（QA #1）✅** —— libFuzzer（clang）對兩個 parser 各跑千萬級次數無 crash／無 OOB／無 UBSan。見 `scripts/run-fuzz.sh`。
+- **真實 HTTPS 已跑通 ✅** —— 完整 stack（`CNRequest` → `CN_Tls`（mbedTLS 2.28 LTS）→ host TCP）對 `openssl s_server` 完成真實 TLS 握手並取得 HTTP 200。TLS 層用 `-DCN_WITH_MBEDTLS=ON -DMBEDTLS_ROOT=...` 啟用；mbedTLS 的非阻塞 BIO（WANT_READ/WRITE）直接對應 `CNTransport` 的 would-block 語意。Mac port 待辦：vendoring mbedTLS 原始碼以 Retro68 編譯、自訂熵源、CA bundle。
 - **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。

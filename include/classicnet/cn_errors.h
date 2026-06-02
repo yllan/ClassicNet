@@ -45,6 +45,11 @@ enum {
     kCNErrResponseTooLarge  = -30071,  /* response head exceeds the buffer */
     kCNErrConnClosed        = -30072,  /* peer closed before the response completed */
 
+    /* TLS */
+    kCNErrTlsInit           = -30080,  /* TLS context / config setup failed */
+    kCNErrTlsHandshake      = -30081,  /* handshake failed (incl. cert verify) */
+    kCNErrTlsIo             = -30082,  /* TLS read/write error */
+
     /* generic */
     kCNErrBadParam          = -30050
 };

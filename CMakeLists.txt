@@ -41,6 +41,23 @@ if(CN_HOST)
     target_compile_definitions(classicnet PUBLIC CN_HOST=1)
 endif()
 
+# Optional TLS layer (mbedTLS). MBEDTLS_ROOT points at a built mbedTLS tree
+# (with include/ and library/*.a) -- e.g. a vendored or locally-built 2.28 LTS.
+option(CN_WITH_MBEDTLS "Build the TLS layer against mbedTLS" OFF)
+set(MBEDTLS_ROOT "" CACHE PATH "Path to a built mbedTLS (include/ + library/*.a)")
+if(CN_WITH_MBEDTLS)
+    if(NOT EXISTS "${MBEDTLS_ROOT}/include/mbedtls/ssl.h")
+        message(FATAL_ERROR "CN_WITH_MBEDTLS set but MBEDTLS_ROOT is invalid: ${MBEDTLS_ROOT}")
+    endif()
+    target_sources(classicnet PRIVATE src/cn_tls.c)
+    target_compile_definitions(classicnet PUBLIC CN_WITH_MBEDTLS=1)
+    target_include_directories(classicnet PUBLIC "${MBEDTLS_ROOT}/include")
+    target_link_libraries(classicnet PUBLIC
+        "${MBEDTLS_ROOT}/library/libmbedtls.a"
+        "${MBEDTLS_ROOT}/library/libmbedx509.a"
+        "${MBEDTLS_ROOT}/library/libmbedcrypto.a")
+endif()
+
 option(CN_BUILD_TESTS "Build host unit tests" ${CN_HOST})
 if(CN_BUILD_TESTS AND CN_HOST)
     enable_testing()

@@ -9,3 +9,5 @@
 
 # editor / OS cruft
 .DS_Store
+
+/build-tls/
