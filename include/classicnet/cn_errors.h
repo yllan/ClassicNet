@@ -40,6 +40,11 @@ enum {
     kCNErrBufferOverflow    = -30060,  /* serialized output exceeds the buffer */
     kCNErrHandshakeFailed   = -30061,  /* WebSocket upgrade response invalid */
 
+    /* async transport / request state machine */
+    kCNErrWouldBlock        = -30070,  /* operation pending; pump again later */
+    kCNErrResponseTooLarge  = -30071,  /* response head exceeds the buffer */
+    kCNErrConnClosed        = -30072,  /* peer closed before the response completed */
+
     /* generic */
     kCNErrBadParam          = -30050
 };

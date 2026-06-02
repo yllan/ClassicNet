@@ -1,0 +1,209 @@
+#include "classicnet/cn_request.h"
+#include "classicnet/cn_errors.h"
+#include "cn_test.h"
+
+#include <string.h>
+
+/* --- a scripted, non-blocking fake transport ------------------------------ */
+
+typedef struct {
+    CNTransport base;
+    const char *resp;
+    UInt32      respLen, respOff;
+    UInt32      dribble;       /* max bytes returned per recv (0 = unlimited) */
+    int         connectPolls;  /* recv kCNErrWouldBlock this many times first */
+    char        sent[2048];
+    UInt32      sentLen;
+} FakeT;
+
+static OSStatus f_poll(CNTransport *t)
+{
+    FakeT *f = (FakeT *)t;
+    if (f->connectPolls > 0) { f->connectPolls--; return kCNErrWouldBlock; }
+    return noErr;
+}
+
+static OSStatus f_send(CNTransport *t, const void *d, UInt32 len, UInt32 *sent)
+{
+    FakeT *f = (FakeT *)t;
+    UInt32 n = len;
+    if (f->sentLen + n > sizeof(f->sent)) n = (UInt32)sizeof(f->sent) - f->sentLen;
+    memcpy(f->sent + f->sentLen, d, n);
+    f->sentLen += n;
+    *sent = len;   /* accept everything */
+    return noErr;
+}
+
+static OSStatus f_recv(CNTransport *t, void *b, UInt32 cap, UInt32 *got, Boolean *eof)
+{
+    FakeT *f = (FakeT *)t;
+    UInt32 avail = f->respLen - f->respOff;
+    UInt32 n = avail < cap ? avail : cap;
+    if (f->dribble && n > f->dribble) n = f->dribble;
+    if (n > 0) { memcpy(b, f->resp + f->respOff, n); f->respOff += n; }
+    *got = n;
+    *eof = (Boolean)(f->respOff >= f->respLen);
+    return noErr;
+}
+
+static void f_close(CNTransport *t) { (void)t; }
+
+static void fake_init(FakeT *f, const char *resp, UInt32 rl, UInt32 dribble, int cp)
+{
+    memset(f, 0, sizeof(*f));
+    f->base.poll = f_poll;
+    f->base.send = f_send;
+    f->base.recv = f_recv;
+    f->base.close = f_close;
+    f->resp = resp; f->respLen = rl;
+    f->dribble = dribble; f->connectPolls = cp;
+}
+
+/* --- capture client callbacks --------------------------------------------- */
+
+typedef struct {
+    int      gotResponse;
+    UInt16   status;
+    char     body[1024];
+    UInt32   bodyLen;
+    int      completed;
+    OSStatus result;
+} Cap;
+
+static void on_response(CNRequest *r, const CNHttpResponse *resp, void *ud)
+{
+    Cap *c = (Cap *)ud; (void)r;
+    c->gotResponse = 1;
+    c->status = resp->status;
+}
+static Boolean on_data(CNRequest *r, const void *bytes, UInt32 len, void *ud)
+{
+    Cap *c = (Cap *)ud; (void)r;
+    if (c->bodyLen + len <= sizeof(c->body)) {
+        memcpy(c->body + c->bodyLen, bytes, len);
+        c->bodyLen += len;
+    }
+    return true;
+}
+static void on_complete(CNRequest *r, OSStatus result, void *ud)
+{
+    Cap *c = (Cap *)ud; (void)r;
+    c->completed = 1;
+    c->result = result;
+}
+
+static void drive(CNRequest *r)
+{
+    int guard = 0;
+    while (!CN_RequestDone(r) && guard++ < 1000000)
+        CN_RequestPump(r);
+}
+
+/* --- tests ---------------------------------------------------------------- */
+
+static void test_content_length_flow(void)
+{
+    const char resp[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Content-Length: 11\r\n"
+        "Content-Type: text/plain\r\n"
+        "\r\n"
+        "hello world";
+    FakeT f;
+    CNRequest req;
+    Cap cap;
+    CNRequestCallbacks cb;
+    /* dribble 1 byte per recv + 2 connect polls: maximally incremental */
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 1, 2);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/data", "example.com",
+                             0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.completed == 1);
+    CN_CHECK(cap.result == noErr);
+    CN_CHECK(cap.gotResponse == 1);
+    CN_CHECK(cap.status == 200);
+    CN_CHECK(cap.bodyLen == 11);
+    CN_CHECK(memcmp(cap.body, "hello world", 11) == 0);
+
+    /* the client actually sent a well-formed request */
+    f.sent[f.sentLen] = '\0';
+    CN_CHECK(strstr(f.sent, "GET /data HTTP/1.1\r\n") == f.sent);
+    CN_CHECK(strstr(f.sent, "Host: example.com\r\n") != 0);
+}
+
+static void test_chunked_flow(void)
+{
+    const char resp[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "\r\n"
+        "5\r\nhello\r\n6\r\n world\r\n0\r\n\r\n";
+    FakeT f;
+    CNRequest req;
+    Cap cap;
+    CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 3, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h.example",
+                             0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.result == noErr);
+    CN_CHECK(cap.status == 200);
+    CN_CHECK(cap.bodyLen == 11);
+    CN_CHECK(memcmp(cap.body, "hello world", 11) == 0);
+}
+
+static void test_204_no_body(void)
+{
+    const char resp[] = "HTTP/1.1 204 No Content\r\n\r\n";
+    FakeT f;
+    CNRequest req;
+    Cap cap;
+    CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.completed == 1);
+    CN_CHECK(cap.result == noErr);
+    CN_CHECK(cap.status == 204);
+    CN_CHECK(cap.bodyLen == 0);
+}
+
+static void test_peer_closed_early(void)
+{
+    /* Content-Length promises 100 bytes but the peer closes after 4. */
+    const char resp[] = "HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\nabcd";
+    FakeT f;
+    CNRequest req;
+    Cap cap;
+    CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.completed == 1);
+    CN_CHECK(cap.result == kCNErrConnClosed);
+}
+
+int main(void)
+{
+    CN_RUN(test_content_length_flow);
+    CN_RUN(test_chunked_flow);
+    CN_RUN(test_204_no_body);
+    CN_RUN(test_peer_closed_early);
+    return CN_SUMMARY();
+}
