@@ -36,6 +36,19 @@ extern "C" {
  */
 OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out);
 
+/*
+ * Decode an HTTP/1.1 chunked transfer-encoded body from in[0,inLen) into
+ * out[0,outCap).  Single-shot and length-bounded.  Returns:
+ *   noErr                  fully decoded; *outLen = decoded bytes,
+ *                          *consumed = input bytes used (through the final CRLF)
+ *   kCNErrChunkIncomplete  buffer lacks the terminating zero-size chunk yet
+ *   kCNErrBadChunk         malformed size line, missing CRLF, etc.
+ *   kCNErrChunkOverflow    decoded data would exceed outCap
+ */
+OSStatus CN_DecodeChunked(const char *in, UInt32 inLen,
+                          char *out, UInt32 outCap,
+                          UInt32 *outLen, UInt32 *consumed);
+
 #ifdef __cplusplus
 }
 #endif

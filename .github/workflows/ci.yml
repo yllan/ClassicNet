@@ -30,6 +30,8 @@ jobs:
         run: ./scripts/run-fuzz.sh http 30
       - name: Fuzz ws
         run: ./scripts/run-fuzz.sh ws 30
+      - name: Fuzz chunked
+        run: ./scripts/run-fuzz.sh chunked 30
 
   # PPC cross-build (L-B) needs the Retro68 toolchain. Building it from source
   # in CI is slow; enable this once a prebuilt toolchain image is available.

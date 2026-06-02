@@ -25,7 +25,12 @@ enum {
     /* WebSocket frame parser */
     kCNErrFrameIncomplete   = -30020,  /* need more bytes; not an error per se */
     kCNErrBadFrame          = -30021,
-    kCNErrFrameTooLarge     = -30022   /* 64-bit length exceeds 32-bit on target */
+    kCNErrFrameTooLarge     = -30022,  /* 64-bit length exceeds 32-bit on target */
+
+    /* HTTP chunked transfer-encoding decoder */
+    kCNErrChunkIncomplete   = -30030,  /* need more bytes; not an error per se */
+    kCNErrBadChunk          = -30031,
+    kCNErrChunkOverflow     = -30032   /* decoded data exceeds the output buffer */
 };
 
 #endif /* CLASSICNET_CN_ERRORS_H */

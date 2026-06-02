@@ -105,3 +105,80 @@ OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out)
         }
     }
 }
+
+static int cn_hexval(char c)
+{
+    if (c >= '0' && c <= '9') return c - '0';
+    if (c >= 'a' && c <= 'f') return c - 'a' + 10;
+    if (c >= 'A' && c <= 'F') return c - 'A' + 10;
+    return -1;
+}
+
+OSStatus CN_DecodeChunked(const char *in, UInt32 inLen,
+                          char *out, UInt32 outCap,
+                          UInt32 *outLen, UInt32 *consumed)
+{
+    UInt32 i = 0;
+    UInt32 o = 0;
+
+    if (in == 0 || out == 0 || outLen == 0 || consumed == 0)
+        return kCNErrBadChunk;
+
+    for (;;) {
+        UInt32 sz = 0;
+        int ndig = 0;
+
+        /* chunk-size = 1*HEXDIG */
+        while (i < inLen) {
+            int hv = cn_hexval(in[i]);
+            if (hv < 0) break;
+            if (sz > (0xFFFFFFFFul >> 4))   /* guard sz<<4 overflow */
+                return kCNErrBadChunk;
+            sz = (sz << 4) | (UInt32)hv;
+            ndig++;
+            i++;
+        }
+        if (i >= inLen) return kCNErrChunkIncomplete;
+        if (ndig == 0) return kCNErrBadChunk;
+
+        /* skip optional chunk-ext up to the CRLF that ends the size line */
+        while (i + 1 < inLen && !(in[i] == '\r' && in[i + 1] == '\n'))
+            i++;
+        if (i + 1 >= inLen) return kCNErrChunkIncomplete;
+        i += 2;
+
+        if (sz == 0) {
+            /* last chunk: optional trailer lines, then a blank line */
+            for (;;) {
+                if (i + 1 > inLen) return kCNErrChunkIncomplete;
+                if (in[i] == '\r') {
+                    if (i + 1 >= inLen) return kCNErrChunkIncomplete;
+                    if (in[i + 1] != '\n') return kCNErrBadChunk;
+                    i += 2;
+                    *outLen = o;
+                    *consumed = i;
+                    return noErr;
+                }
+                while (i + 1 < inLen && !(in[i] == '\r' && in[i + 1] == '\n'))
+                    i++;
+                if (i + 1 >= inLen) return kCNErrChunkIncomplete;
+                i += 2;
+            }
+        }
+
+        /* chunk-data: sz bytes, then a trailing CRLF */
+        if (sz > inLen - i) return kCNErrChunkIncomplete;
+        if (sz > outCap - o) return kCNErrChunkOverflow;
+        {
+            UInt32 k;
+            for (k = 0; k < sz; k++)
+                out[o + k] = in[i + k];
+        }
+        o += sz;
+        i += sz;
+
+        if (i + 2 > inLen) return kCNErrChunkIncomplete;
+        if (in[i] != '\r' || in[i + 1] != '\n') return kCNErrBadChunk;
+        i += 2;
+    }
+}
