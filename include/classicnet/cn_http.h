@@ -13,6 +13,11 @@ typedef struct {
 } CNHeaderField;
 
 typedef struct {
+    const char *name;
+    const char *value;
+} CNHeaderKV;
+
+typedef struct {
     UInt16        status;       /* 100..599 */
     UInt8         httpMinor;    /* 0 or 1 (HTTP/1.x) */
     UInt8         headerCount;
@@ -48,6 +53,16 @@ OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out);
 OSStatus CN_DecodeChunked(const char *in, UInt32 inLen,
                           char *out, UInt32 outCap,
                           UInt32 *outLen, UInt32 *consumed);
+
+/*
+ * Serialize an HTTP/1.1 request head (no body) into out[0,outCap):
+ *   "METHOD path HTTP/1.1\r\nHost: host\r\n" + each header + "\r\n"
+ * out is NUL-terminated; *outLen is the length without the NUL.
+ * Returns kCNErrBufferOverflow if it does not fit.
+ */
+OSStatus CN_BuildRequest(const char *method, const char *path, const char *host,
+                         const CNHeaderKV *headers, UInt32 headerCount,
+                         char *out, UInt32 outCap, UInt32 *outLen);
 
 #ifdef __cplusplus
 }

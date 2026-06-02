@@ -36,6 +36,10 @@ enum {
     kCNErrBadBase64         = -30040,  /* malformed base64 input */
     kCNErrBase64Overflow    = -30041,  /* result exceeds the output buffer */
 
+    /* request serialization / handshake */
+    kCNErrBufferOverflow    = -30060,  /* serialized output exceeds the buffer */
+    kCNErrHandshakeFailed   = -30061,  /* WebSocket upgrade response invalid */
+
     /* generic */
     kCNErrBadParam          = -30050
 };

@@ -105,6 +105,51 @@ static void test_accept_key(void)
     CN_CHECK(strcmp(accept, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
 }
 
+static void test_upgrade_roundtrip(void)
+{
+    /* base64("the sample nonce") == the RFC's Sec-WebSocket-Key. */
+    const UInt8 *nonce = (const UInt8 *)"the sample nonce";
+    char req[256];
+    char accept[29];
+    UInt32 rl = 0;
+    CNHttpResponse resp;
+
+    CN_CHECK(CN_WSBuildUpgrade("server.example.com", "/chat", nonce,
+                               req, sizeof(req), &rl, accept) == noErr);
+    CN_CHECK(strstr(req, "GET /chat HTTP/1.1\r\n") == req);
+    CN_CHECK(strstr(req, "Host: server.example.com\r\n") != 0);
+    CN_CHECK(strstr(req, "Sec-WebSocket-Key: dGhlIHNhbXBsZSBub25jZQ==\r\n") != 0);
+    CN_CHECK(strstr(req, "Sec-WebSocket-Version: 13\r\n") != 0);
+    CN_CHECK(strcmp(accept, "s3pPLMBiTxaQ9kYGzzhZRbK+xOo=") == 0);
+
+    /* A correct server response validates against the expected accept. */
+    {
+        const char ok[] =
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Upgrade: websocket\r\n"
+            "Connection: Upgrade\r\n"
+            "Sec-WebSocket-Accept: s3pPLMBiTxaQ9kYGzzhZRbK+xOo=\r\n"
+            "\r\n";
+        CN_CHECK(CN_ParseHttpResponse(ok, (UInt32)(sizeof(ok) - 1), &resp) == noErr);
+        CN_CHECK(CN_WSCheckUpgradeResponse(&resp, accept) == noErr);
+    }
+    /* Wrong accept value is rejected. */
+    {
+        const char bad[] =
+            "HTTP/1.1 101 Switching Protocols\r\n"
+            "Sec-WebSocket-Accept: wrongwrongwrongwrongwrongwro=\r\n"
+            "\r\n";
+        CN_CHECK(CN_ParseHttpResponse(bad, (UInt32)(sizeof(bad) - 1), &resp) == noErr);
+        CN_CHECK(CN_WSCheckUpgradeResponse(&resp, accept) == kCNErrHandshakeFailed);
+    }
+    /* Non-101 status is rejected. */
+    {
+        const char no[] = "HTTP/1.1 200 OK\r\n\r\n";
+        CN_CHECK(CN_ParseHttpResponse(no, (UInt32)(sizeof(no) - 1), &resp) == noErr);
+        CN_CHECK(CN_WSCheckUpgradeResponse(&resp, accept) == kCNErrHandshakeFailed);
+    }
+}
+
 int main(void)
 {
     CN_RUN(test_small_unmasked_text);
@@ -115,5 +160,6 @@ int main(void)
     CN_RUN(test_rejects_bad_frames);
     CN_RUN(test_incomplete_headers);
     CN_RUN(test_accept_key);
+    CN_RUN(test_upgrade_roundtrip);
     return CN_SUMMARY();
 }

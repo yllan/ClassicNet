@@ -106,3 +106,59 @@ OSStatus CN_WSAcceptKey(const char *clientKey, char out[29])
 
     return CN_Base64Encode(digest, CN_SHA1_DIGEST_LEN, out, 29, &outLen);
 }
+
+OSStatus CN_WSBuildUpgrade(const char *host, const char *path,
+                           const UInt8 nonce[16],
+                           char *out, UInt32 outCap, UInt32 *outLen,
+                           char acceptOut[29])
+{
+    char key[25];                /* base64 of 16 bytes = 24 chars + NUL */
+    UInt32 keyLen;
+    OSStatus s;
+    CNHeaderKV hdrs[4];
+
+    if (host == 0 || path == 0 || nonce == 0 || out == 0 || acceptOut == 0)
+        return kCNErrBadParam;
+
+    s = CN_Base64Encode(nonce, 16, key, sizeof(key), &keyLen);
+    if (s != noErr) return s;
+    s = CN_WSAcceptKey(key, acceptOut);
+    if (s != noErr) return s;
+
+    hdrs[0].name = "Upgrade";               hdrs[0].value = "websocket";
+    hdrs[1].name = "Connection";            hdrs[1].value = "Upgrade";
+    hdrs[2].name = "Sec-WebSocket-Key";     hdrs[2].value = key;
+    hdrs[3].name = "Sec-WebSocket-Version"; hdrs[3].value = "13";
+
+    return CN_BuildRequest("GET", path, host, hdrs, 4, out, outCap, outLen);
+}
+
+static int cn_ci_eq(const char *a, const char *b)
+{
+    while (*a && *b) {
+        char ca = *a, cb = *b;
+        if (ca >= 'A' && ca <= 'Z') ca = (char)(ca - 'A' + 'a');
+        if (cb >= 'A' && cb <= 'Z') cb = (char)(cb - 'A' + 'a');
+        if (ca != cb) return 0;
+        a++; b++;
+    }
+    return *a == *b;
+}
+
+OSStatus CN_WSCheckUpgradeResponse(const CNHttpResponse *resp,
+                                   const char *expectedAccept)
+{
+    UInt32 i;
+    if (resp == 0 || expectedAccept == 0)
+        return kCNErrBadParam;
+    if (resp->status != 101)
+        return kCNErrHandshakeFailed;
+    for (i = 0; i < resp->headerCount; i++) {
+        if (cn_ci_eq(resp->headers[i].name, "Sec-WebSocket-Accept")) {
+            if (strcmp(resp->headers[i].value, expectedAccept) == 0)
+                return noErr;
+            return kCNErrHandshakeFailed;
+        }
+    }
+    return kCNErrHandshakeFailed;
+}

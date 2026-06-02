@@ -106,6 +106,51 @@ OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out)
     }
 }
 
+static int cn_wr(char *out, UInt32 cap, UInt32 *len, const char *s)
+{
+    while (*s) {
+        if (*len >= cap) return 0;
+        out[(*len)++] = *s++;
+    }
+    return 1;
+}
+
+OSStatus CN_BuildRequest(const char *method, const char *path, const char *host,
+                         const CNHeaderKV *headers, UInt32 headerCount,
+                         char *out, UInt32 outCap, UInt32 *outLen)
+{
+    UInt32 len = 0;
+    UInt32 i;
+    int ok = 1;
+
+    if (method == 0 || path == 0 || host == 0 || out == 0)
+        return kCNErrBadParam;
+    if (headerCount > 0 && headers == 0)
+        return kCNErrBadParam;
+
+    ok &= cn_wr(out, outCap, &len, method);
+    ok &= cn_wr(out, outCap, &len, " ");
+    ok &= cn_wr(out, outCap, &len, path);
+    ok &= cn_wr(out, outCap, &len, " HTTP/1.1\r\nHost: ");
+    ok &= cn_wr(out, outCap, &len, host);
+    ok &= cn_wr(out, outCap, &len, "\r\n");
+    for (i = 0; i < headerCount; i++) {
+        if (headers[i].name == 0 || headers[i].value == 0)
+            return kCNErrBadParam;
+        ok &= cn_wr(out, outCap, &len, headers[i].name);
+        ok &= cn_wr(out, outCap, &len, ": ");
+        ok &= cn_wr(out, outCap, &len, headers[i].value);
+        ok &= cn_wr(out, outCap, &len, "\r\n");
+    }
+    ok &= cn_wr(out, outCap, &len, "\r\n");
+
+    if (!ok || len >= outCap)     /* need one more byte for the NUL */
+        return kCNErrBufferOverflow;
+    out[len] = '\0';
+    if (outLen) *outLen = len;
+    return noErr;
+}
+
 static int cn_hexval(char c)
 {
     if (c >= '0' && c <= '9') return c - '0';
