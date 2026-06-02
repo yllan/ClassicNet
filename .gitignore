@@ -1,0 +1,11 @@
+# build output
+/build/
+*.o
+*.a
+
+# emulator artifacts
+*.qcow2
+.classicnet/
+
+# editor / OS cruft
+.DS_Store
