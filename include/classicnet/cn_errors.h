@@ -13,7 +13,14 @@ enum {
     kCNErrUnsupportedScheme = -30002,
     kCNErrHostTooLong       = -30003,
     kCNErrPathTooLong       = -30004,
-    kCNErrBadPort           = -30005
+    kCNErrBadPort           = -30005,
+
+    /* HTTP/1.x response parser */
+    kCNErrHeadersIncomplete = -30010,  /* need more bytes; not an error per se */
+    kCNErrBadStatusLine     = -30011,
+    kCNErrBadHeader         = -30012,
+    kCNErrTooManyHeaders    = -30013,
+    kCNErrHeaderTooLong     = -30014
 };
 
 #endif /* CLASSICNET_CN_ERRORS_H */

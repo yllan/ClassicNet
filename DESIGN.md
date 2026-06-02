@@ -49,6 +49,7 @@
 
 - **主力：[Retro68](https://github.com/autc04/Retro68)**（Linux 上的 GCC cross-compiler，整合 CMake）。日常開發、測試、CI 都用它。
 - **已知風險：** Retro68 產 PPC CFM shared library「能做但文件極缺」。流程：`gcc -shared` → XCOFF → `MakePEF` → `MakeImport`（import stub）→ `Rez`。某些結構（如 `ImportMacFunctions`）無文件，需逆向摸索。參見 [Retro68 #97](https://github.com/autc04/Retro68/issues/97)。
+- **已驗證 ✅：** `Retro68/Samples/SharedLibrary` 的配方實測可產出 CFM shared library（見 §11）。先前「文件極缺」的風險大幅降級。
 - **Fallback：** 若 shared library 輸出卡死，把「打包成 CFM shared library」這一步移到 **CodeWarrior（SheepShaver 模擬器內）**，其 CFM shared library 支援為一等公民。
 
 ## 6. 三根硬骨頭（與 OS 版本無關，必須正面解）
@@ -168,3 +169,14 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 - 自訂錯誤碼區間的最終配置。
 - CA bundle 的更新機制（隨 app / 獨立 extension / 線上更新）。
 - 記憶體配置策略（大 buffer 來源：OT 提供 vs 自有 pool）。
+
+## 11. 建置與驗證現況
+
+骨架已可運作，下列事項以實機 toolchain 驗證過：
+
+- **CFM shared library 路徑已打通 ✅** —— `Retro68/Samples/SharedLibrary` 的配方（`add_library SHARED` → `MakePEF` → `Rez -t shlb` 帶 `cfrg` + `-Wl,-bE:exports`）實測能產出 `file` 判定為 `shared library` 的 PEF。§5 的最大未知數解除。
+- **可攜碼雙向編譯 ✅** —— `src/`（`cn_url.c` / `cn_http.c`）同時在 host（gcc, x86）與 PPC target（`powerpc-apple-macos-gcc`）編譯通過、零警告。
+- **型別 seam 的一個真實坑** —— Retro68 multiversal interfaces 定義 `OSErr`（16-bit）但**無 `OSStatus`**（Carbon 時代型別）。已在 `cn_types.h` 的 Mac 分支補 `typedef SInt32 OSStatus`；決策 #2（用 OSStatus）維持不變。
+- **L-A host 測試 ✅** —— CMake + AddressSanitizer + UBSan，`ctest` 跑 `cn_url` / `cn_http` 兩組全過。
+- **Fuzzing（QA #1）✅** —— libFuzzer（clang）對兩個 parser 各跑千萬級次數無 crash／無 OOB／無 UBSan。見 `scripts/run-fuzz.sh`。
+- **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。

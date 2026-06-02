@@ -30,6 +30,7 @@ endif()
 
 add_library(classicnet STATIC
     src/cn_url.c
+    src/cn_http.c
 )
 target_include_directories(classicnet PUBLIC include)
 if(CN_HOST)
