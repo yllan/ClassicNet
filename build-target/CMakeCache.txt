@@ -221,6 +221,9 @@ ClassicNetTarget_IS_TOP_LEVEL:STATIC=ON
 //Value Computed by CMake
 ClassicNetTarget_SOURCE_DIR:STATIC=/home/yllan/Projects/RetroMacIdea/ClassicNet/target
 
+//No help, variable specified on the command line.
+MBEDTLS_PPC_ROOT:UNINITIALIZED=/tmp/ot-mbedtls
+
 //path to root of Retro68 Toolchain
 RETRO68_ROOT:PATH=/home/yllan/Projects/Retro68-build/toolchain
 

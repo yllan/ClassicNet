@@ -37,3 +37,28 @@ add_application(cnhttp CONSOLE
 target_compile_definitions(cnhttp PRIVATE CN_WITH_OT=1)
 target_include_directories(cnhttp PRIVATE ${CMAKE_CURRENT_SOURCE_DIR}/../include)
 target_link_libraries(cnhttp OpenTransportAppPPC OpenTransportLib OpenTptInternetLib)
+
+# HTTPS over TLS + Open Transport. Needs a PPC-built mbedTLS (MBEDTLS_PPC_ROOT
+# points at its build tree with include/ and library/*.a).
+if(MBEDTLS_PPC_ROOT)
+    add_application(cnhttps CONSOLE
+        FILES
+            https_get.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_ot.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_tls.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_request.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_http.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_url.c
+    )
+    target_compile_definitions(cnhttps PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1)
+    # MBEDTLS_PPC_ROOT = mbedTLS source root; PPC libs are under build-ppc/library.
+    target_include_directories(cnhttps PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        ${MBEDTLS_PPC_ROOT}/include)
+    target_link_libraries(cnhttps
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedtls.a
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedx509.a
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedcrypto.a
+        OpenTransportAppPPC OpenTransportLib OpenTptInternetLib
+        ThreadsLib)   # cy384's mbedtls yields (YieldToAnyThread) during long crypto
+endif()
