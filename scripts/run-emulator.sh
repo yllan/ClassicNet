@@ -69,6 +69,16 @@ case "$MODE" in
         ;;
     run)
         ARGS+=( -boot c )
+        # 可選：附掛一個 HFS 工具碟（當成 CD-ROM，OS 9 較容易掛載），
+        # 例如 Retro68 產出的 cntest.dsk，用來在真機上跑 on-target 測試。
+        if [ -n "${CN_TOOLS_DISK:-}" ]; then
+            if [ -f "$CN_TOOLS_DISK" ]; then
+                echo "附掛工具碟（CD）: $CN_TOOLS_DISK"
+                ARGS+=( -drive "file=$CN_TOOLS_DISK,format=raw,media=cdrom" )
+            else
+                echo "警告：CN_TOOLS_DISK 不存在：$CN_TOOLS_DISK"
+            fi
+        fi
         ;;
     *)
         echo "用法: $0 [install|run]"
