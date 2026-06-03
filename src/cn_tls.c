@@ -64,6 +64,7 @@ static OSStatus tls_send(CNTransport *t, const void *data, UInt32 len, UInt32 *s
         *sent = 0;
         return noErr;
     }
+    tls->lastError = rc;   /* record the mbedTLS code for diagnostics */
     return kCNErrTlsIo;
 }
 
@@ -80,6 +81,7 @@ static OSStatus tls_recv(CNTransport *t, void *buf, UInt32 cap, UInt32 *got, Boo
         *got = 0;
         return noErr;
     }
+    tls->lastError = rc;   /* record the mbedTLS code for diagnostics */
     return kCNErrTlsIo;
 }
 

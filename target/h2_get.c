@@ -92,6 +92,10 @@ int main(void)
     else
         printf("TIMEOUT\r\n");
 
+    if (!cap.done || cap.result != noErr)
+        printf("  last mbedTLS rc = %d (-0x%04X)\r\n",
+               tls.lastError, (unsigned)(-tls.lastError));
+
     CN_TlsDispose(&tls);
     CN_OTDispose(&ot);
     CN_OTShutdown();
