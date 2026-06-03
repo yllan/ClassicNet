@@ -33,6 +33,13 @@ def handle(conn_sock):
         events = conn.receive_data(data)
         for event in events:
             if isinstance(event, h2.events.RequestReceived):
+                hdrs = dict(event.headers)
+                method = hdrs.get(b":method", b"?").decode()
+                path = hdrs.get(b":path", b"?").decode()
+                auth = hdrs.get(b":authority", b"?").decode()
+                sys.stderr.write(">> h2 request from client: %s %s (authority %s) -> 200\n"
+                                 % (method, path, auth))
+                sys.stderr.flush()
                 sid = event.stream_id
                 conn.send_headers(sid, [
                     (":status", "200"),
@@ -67,10 +74,16 @@ def main():
     sys.stderr.flush()
 
     while True:
-        raw, _ = sock.accept()
+        raw, peer = sock.accept()
+        sys.stderr.write(">> TCP connection from %s:%d\n" % peer)
+        sys.stderr.flush()
         try:
             tls = ctx.wrap_socket(raw, server_side=True)
-        except ssl.SSLError:
+            sys.stderr.write(">> TLS handshake ok, ALPN=%s\n" % tls.selected_alpn_protocol())
+            sys.stderr.flush()
+        except ssl.SSLError as e:
+            sys.stderr.write(">> TLS handshake FAILED: %s\n" % e)
+            sys.stderr.flush()
             raw.close()
             continue
         try:
