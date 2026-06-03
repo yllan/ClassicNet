@@ -45,6 +45,8 @@ int main(void)
     if (CN_OTCreate(&ot, host, port, &otT) != noErr) { printf("OT create failed\r\n"); goto wait; }
 #ifdef CN_VERIFY
     printf("verify: REQUIRED (embedded CA, host 'localhost')\r\n");
+    printf("clock: unix time = %ld (cert validity is checked against this)\r\n",
+           cn_mac_time((long *)0));
     if (CN_TlsCreate(&tls, otT, "localhost", kTestCA, (UInt32)sizeof(kTestCA), &tlsT) != noErr) {
         printf("TLS create failed\r\n"); goto wait;
     }

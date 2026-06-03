@@ -42,9 +42,13 @@ if [ ! -f "$DEPS/mbedtls-ppc/build-ppc/library/libmbedtls.a" ]; then
         git -C "$DEPS/mbedtls-ppc" submodule update --init
     fi
     [ -f "$TCFILE" ] || { echo "Retro68 toolchain not found at $TCFILE (set RETRO68_TOOLCHAIN)"; exit 1; }
+    # build with our user config so X.509 validity dates are checked against the
+    # Mac clock (target/mbedtls_userconfig.h + cn_mac_time.c). Apps linking this
+    # lib must compile with the same -DMBEDTLS_USER_CONFIG_FILE (see target CMake).
     cmake -S "$DEPS/mbedtls-ppc" -B "$DEPS/mbedtls-ppc/build-ppc" \
         -DCMAKE_TOOLCHAIN_FILE="$TCFILE" -DUNSAFE_BUILD=ON \
-        -DENABLE_TESTING=Off -DENABLE_PROGRAMS=Off -DCMAKE_BUILD_TYPE=Release >/dev/null
+        -DENABLE_TESTING=Off -DENABLE_PROGRAMS=Off -DCMAKE_BUILD_TYPE=Release \
+        -DCMAKE_C_FLAGS="-I$ROOT/target -DMBEDTLS_USER_CONFIG_FILE=\\\"mbedtls_userconfig.h\\\"" >/dev/null
     cmake --build "$DEPS/mbedtls-ppc/build-ppc" -j"$JOBS"
 else
     echo ">> PPC mbedTLS already built"

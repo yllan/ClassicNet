@@ -44,13 +44,16 @@ if(MBEDTLS_PPC_ROOT)
     add_application(cnhttps CONSOLE
         FILES
             https_get.c
+            cn_mac_time.c
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_ot.c
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_tls.c
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_request.c
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_http.c
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_url.c
     )
-    target_compile_definitions(cnhttps PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1)
+    target_compile_definitions(cnhttps PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1
+        # match the mbedTLS lib's config (Mac time/gmtime/ms_time, see setup-mbedtls.sh)
+        MBEDTLS_USER_CONFIG_FILE="mbedtls_userconfig.h")
     # -DCN_VERIFY=ON embeds the CA from scripts/gen-test-pki.sh (target/test_ca.h)
     # and requires certificate verification instead of running insecure.
     option(CN_VERIFY "Require TLS certificate verification (needs target/test_ca.h)" OFF)
@@ -59,6 +62,7 @@ if(MBEDTLS_PPC_ROOT)
     endif()
     # MBEDTLS_PPC_ROOT = mbedTLS source root; PPC libs are under build-ppc/library.
     target_include_directories(cnhttps PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}            # mbedtls_userconfig.h, test_ca.h
         ${CMAKE_CURRENT_SOURCE_DIR}/../include
         ${MBEDTLS_PPC_ROOT}/include)
     target_link_libraries(cnhttps
