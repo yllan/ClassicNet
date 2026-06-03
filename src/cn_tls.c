@@ -125,6 +125,16 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     if (rc != 0) return kCNErrTlsInit;
     mbedtls_ssl_conf_rng(&tls->conf, mbedtls_ctr_drbg_random, &tls->drbg);
 
+    /* Pin TLS 1.2 on mbedTLS 3.x. The PowerPC build (cy384's fork) advertises
+       TLS 1.3 but its 1.3 *data phase* is unreliable -- a 1.3 handshake + ALPN
+       succeed, then the application-data exchange fails (kCNErrTlsIo). Capping
+       the max version forces the well-supported 1.2 path. mbedTLS 2.28 is 1.2-
+       only already, so this is a no-op there. Remove (or define
+       CN_TLS_ALLOW_TLS13) once a full-1.3 PowerPC mbedTLS is available. */
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000 && !defined(CN_TLS_ALLOW_TLS13)
+    mbedtls_ssl_conf_max_tls_version(&tls->conf, MBEDTLS_SSL_VERSION_TLS1_2);
+#endif
+
     if (caPem != 0 && caLen != 0) {
         rc = mbedtls_x509_crt_parse(&tls->cacert,
                                     (const unsigned char *)caPem, caLen);
