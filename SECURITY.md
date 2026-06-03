@@ -64,8 +64,12 @@ Before shipping, you **must**:
   fork) is self-described as mediocre. `CN_TlsAddEntropy` mitigates but does not
   fix this; a machine with no real entropy source cannot reach a strong seed by
   software alone. Treat freshly-booted, no-user-input handshakes with suspicion.
-- **TLS 1.3 unavailable on target.** Pinned to 1.2 until a PowerPC mbedTLS with
-  a working 1.3 data phase exists (then define `CN_TLS_ALLOW_TLS13`).
+- **TLS 1.3 supported.** Both 1.2 and 1.3 work (the post-handshake
+  NewSessionTicket return is handled in `tls_recv`/`tls_send`); 1.3 is the
+  default on mbedTLS 3.x, verified on the host against vanilla 3.6.0 and real
+  public servers. Define `CN_TLS_FORCE_TLS12` to pin 1.2 as a fallback. (The
+  on-target 3.6 build uses the same code path; end-to-end target confirmation of
+  1.3 is pending an emulator run.)
 - **No revocation checking.** No OCSP/CRL; a revoked-but-unexpired cert is
   accepted. Acceptable for many uses, but know it.
 - **Single-threaded assumption.** The HPACK decoder uses static scratch buffers;

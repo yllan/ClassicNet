@@ -64,6 +64,12 @@ static OSStatus tls_send(CNTransport *t, const void *data, UInt32 len, UInt32 *s
         *sent = 0;
         return noErr;
     }
+#if defined(MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
+    if (rc == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) {
+        *sent = 0;            /* TLS 1.3 post-handshake ticket processed; retry */
+        return noErr;
+    }
+#endif
     tls->lastError = rc;   /* record the mbedTLS code for diagnostics */
     return kCNErrTlsIo;
 }
@@ -81,6 +87,15 @@ static OSStatus tls_recv(CNTransport *t, void *buf, UInt32 cap, UInt32 *got, Boo
         *got = 0;
         return noErr;
     }
+#if defined(MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET)
+    if (rc == MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET) {
+        /* TLS 1.3 sends session tickets as post-handshake messages; mbedTLS
+           surfaces them here. Not application data and not an error -- consume
+           and let the caller pump again. (This was the on-target -30082.) */
+        *got = 0;
+        return noErr;
+    }
+#endif
     tls->lastError = rc;   /* record the mbedTLS code for diagnostics */
     return kCNErrTlsIo;
 }
@@ -125,13 +140,13 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     if (rc != 0) return kCNErrTlsInit;
     mbedtls_ssl_conf_rng(&tls->conf, mbedtls_ctr_drbg_random, &tls->drbg);
 
-    /* Pin TLS 1.2 on mbedTLS 3.x. The PowerPC build (cy384's fork) advertises
-       TLS 1.3 but its 1.3 *data phase* is unreliable -- a 1.3 handshake + ALPN
-       succeed, then the application-data exchange fails (kCNErrTlsIo). Capping
-       the max version forces the well-supported 1.2 path. mbedTLS 2.28 is 1.2-
-       only already, so this is a no-op there. Remove (or define
-       CN_TLS_ALLOW_TLS13) once a full-1.3 PowerPC mbedTLS is available. */
-#if MBEDTLS_VERSION_NUMBER >= 0x03000000 && !defined(CN_TLS_ALLOW_TLS13)
+    /* TLS 1.3 is supported and enabled by default on mbedTLS 3.x. The one thing
+       a non-blocking client must get right is the post-handshake NewSessionTicket
+       message (mbedTLS surfaces it from ssl_read/ssl_write as a non-fatal return,
+       handled in tls_recv/tls_send) -- mishandling it was the on-target -30082.
+       Define CN_TLS_FORCE_TLS12 to pin 1.2 as a fallback. mbedTLS 2.28 (host) is
+       1.2-only regardless. */
+#if MBEDTLS_VERSION_NUMBER >= 0x03000000 && defined(CN_TLS_FORCE_TLS12)
     mbedtls_ssl_conf_max_tls_version(&tls->conf, MBEDTLS_SSL_VERSION_TLS1_2);
 #endif
 

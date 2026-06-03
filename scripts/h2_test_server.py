@@ -59,11 +59,10 @@ def main():
     ctx = ssl.SSLContext(ssl.PROTOCOL_TLS_SERVER)
     ctx.load_cert_chain(certfile=cert, keyfile=key)
     ctx.set_alpn_protocols(["h2"])
-    # The cy384 PowerPC mbedTLS fork is a TLS 1.2-era client; pin the server to
-    # 1.2 so on-target cnh2 negotiates the well-supported path (set
-    # CN_H2_ALLOW_TLS13=1 to lift this and test 1.3 negotiation).
+    # TLS 1.3 is fine: the client handles the post-handshake NewSessionTicket
+    # (cn_tls.c). Set CN_H2_FORCE_TLS12=1 to pin 1.2 for the fallback path.
     import os
-    if not os.environ.get("CN_H2_ALLOW_TLS13"):
+    if os.environ.get("CN_H2_FORCE_TLS12"):
         ctx.maximum_version = ssl.TLSVersion.TLSv1_2
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)

@@ -34,6 +34,17 @@ else
     echo ">> host mbedTLS already built"
 fi
 
+# --- host mbedTLS 3.6 (vanilla) : same version as the PPC fork, used to test
+#     the TLS 1.3 path on the host (scripts/test-tls13.sh). ---
+if [ ! -f "$DEPS/mbedtls-host3/library/libmbedtls.a" ]; then
+    echo ">> host mbedTLS 3.6.0 (for TLS 1.3 tests) ..."
+    [ -d "$DEPS/mbedtls-host3" ] || git clone --depth 1 --branch v3.6.0 \
+        https://github.com/Mbed-TLS/mbedtls.git "$DEPS/mbedtls-host3"
+    make -C "$DEPS/mbedtls-host3" -j"$JOBS" lib
+else
+    echo ">> host mbedTLS 3.6 already built"
+fi
+
 # --- PPC mbedTLS (cy384 classic-Mac fork, 3.6) ---
 if [ ! -f "$DEPS/mbedtls-ppc/build-ppc/library/libmbedtls.a" ]; then
     echo ">> PPC mbedTLS (cy384 opentransport-mbedtls) ..."
