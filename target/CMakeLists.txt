@@ -64,7 +64,12 @@ if(MBEDTLS_PPC_ROOT)
     # -DCN_VERIFY=ON embeds the CA from scripts/gen-test-pki.sh (target/test_ca.h)
     # and requires certificate verification instead of running insecure.
     option(CN_VERIFY "Require TLS certificate verification (needs target/test_ca.h)" OFF)
-    if(CN_VERIFY)
+    # CN_CA_BUNDLE embeds the real Mozilla roots (scripts/gen-ca-bundle.sh ->
+    # target/ca_bundle.h) for verifying real public servers, instead of the test CA.
+    option(CN_CA_BUNDLE "Verify against the embedded Mozilla root bundle (needs target/ca_bundle.h)" OFF)
+    if(CN_CA_BUNDLE)
+        target_compile_definitions(cnhttps PRIVATE CN_CA_BUNDLE=1)
+    elseif(CN_VERIFY)
         target_compile_definitions(cnhttps PRIVATE CN_VERIFY=1)
     endif()
     # MBEDTLS_PPC_ROOT = mbedTLS source root; PPC libs are under build-ppc/library.
@@ -94,7 +99,9 @@ if(MBEDTLS_PPC_ROOT)
     )
     target_compile_definitions(cnh2 PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1
         MBEDTLS_USER_CONFIG_FILE="mbedtls_userconfig.h")
-    if(CN_VERIFY)
+    if(CN_CA_BUNDLE)
+        target_compile_definitions(cnh2 PRIVATE CN_CA_BUNDLE=1)
+    elseif(CN_VERIFY)
         target_compile_definitions(cnh2 PRIVATE CN_VERIFY=1)
     endif()
     target_include_directories(cnh2 PRIVATE

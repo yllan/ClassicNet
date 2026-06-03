@@ -41,7 +41,7 @@ int main(int argc, char **argv)
     Cap cap;
     CNRequestCallbacks cb;
     int guard = 0;
-    static char caBuf[32768];
+    static char caBuf[400000];   /* large enough for a full Mozilla CA bundle */
     const char *caPem = NULL;
     UInt32 caLen = 0;
 
