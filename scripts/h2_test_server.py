@@ -78,7 +78,8 @@ def main():
         sys.stderr.flush()
         try:
             tls = ctx.wrap_socket(raw, server_side=True)
-            sys.stderr.write(">> TLS handshake ok, ALPN=%s\n" % tls.selected_alpn_protocol())
+            sys.stderr.write(">> TLS handshake ok, version=%s ALPN=%s\n"
+                             % (tls.version(), tls.selected_alpn_protocol()))
             sys.stderr.flush()
         except ssl.SSLError as e:
             sys.stderr.write(">> TLS handshake FAILED: %s\n" % e)

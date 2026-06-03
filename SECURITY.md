@@ -67,9 +67,8 @@ Before shipping, you **must**:
 - **TLS 1.3 supported.** Both 1.2 and 1.3 work (the post-handshake
   NewSessionTicket return is handled in `tls_recv`/`tls_send`); 1.3 is the
   default on mbedTLS 3.x, verified on the host against vanilla 3.6.0 and real
-  public servers. Define `CN_TLS_FORCE_TLS12` to pin 1.2 as a fallback. (The
-  on-target 3.6 build uses the same code path; end-to-end target confirmation of
-  1.3 is pending an emulator run.)
+  public servers, and **confirmed end-to-end on real OS 9** (cnh2 negotiated
+  TLSv1.3 and fetched 200). Define `CN_TLS_FORCE_TLS12` to pin 1.2 as a fallback.
 - **No revocation checking.** No OCSP/CRL; a revoked-but-unexpired cert is
   accepted. Acceptable for many uses, but know it.
 - **Single-threaded assumption.** The HPACK decoder uses static scratch buffers;
