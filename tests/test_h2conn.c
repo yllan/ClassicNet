@@ -219,10 +219,111 @@ static void test_goaway_fails(void)
     CN_CHECK(g_result == kCNErrH2StreamError);
 }
 
+/* ---- N-way multiplexing ---- */
+typedef struct {
+    UInt32   id;
+    UInt16   status;
+    char     body[64];
+    UInt32   bodyLen;
+    int      done;
+    OSStatus result;
+} Req;
+
+static void mx_resp(CNH2Conn *c, const CNH2Response *r, void *ud)
+{ Req *q = (Req *)ud; (void)c; q->status = r->status; }
+static Boolean mx_data(CNH2Conn *c, const void *b, UInt32 len, void *ud)
+{
+    Req *q = (Req *)ud; (void)c;
+    if (q->bodyLen + len < sizeof(q->body)) {
+        memcpy(q->body + q->bodyLen, b, len);
+        q->bodyLen += len; q->body[q->bodyLen] = 0;
+    }
+    return true;
+}
+static void mx_done(CNH2Conn *c, OSStatus result, void *ud)
+{ Req *q = (Req *)ud; (void)c; q->done = 1; q->result = result; }
+
+/* server HEADERS (no END_STREAM; body follows) for a given stream */
+static UInt32 srv_headers(unsigned char *out, UInt32 cap, UInt32 sid)
+{
+    unsigned char hp[128]; UInt32 hl = 0, fl = 0;
+    CN_HpackEncodeField(":status", 7, "200", 3, hp, sizeof(hp), &hl);
+    CN_HpackEncodeField("content-type", 12, "text/plain", 10, hp, sizeof(hp), &hl);
+    CN_H2BuildFrame(kCNH2Headers, kCNH2FlagEndHeaders, sid, hp, hl, out, cap, &fl);
+    return fl;
+}
+static UInt32 srv_data(unsigned char *out, UInt32 cap, UInt32 sid,
+                       const char *body, UInt32 len)
+{
+    UInt32 fl = 0;
+    CN_H2BuildFrame(kCNH2Data, kCNH2FlagEndStream, sid,
+                    (const unsigned char *)body, len, out, cap, &fl);
+    return fl;
+}
+
+static void test_multiplex(void)
+{
+    MockT m;
+    CNH2Conn c;
+    CNH2Callbacks cb;
+    Req r1, r3, r5;
+    unsigned char buf[256];
+    UInt32 n, id;
+    int guard = 0;
+
+    mock_init(&m, 7);                        /* 7-byte recv chunks: interleave + reassembly */
+    cb.onResponse = mx_resp; cb.onData = mx_data; cb.onComplete = mx_done;
+    memset(&r1, 0, sizeof(r1)); memset(&r3, 0, sizeof(r3)); memset(&r5, 0, sizeof(r5));
+
+    /* server SETTINGS, then ALL three response header blocks, then bodies
+       OUT OF ORDER (5, 1, 3) -- proves the client routes by stream id. */
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    srv_raw(&m, buf, srv_headers(buf, sizeof(buf), 1));
+    srv_raw(&m, buf, srv_headers(buf, sizeof(buf), 3));
+    srv_raw(&m, buf, srv_headers(buf, sizeof(buf), 5));
+    srv_raw(&m, buf, srv_data(buf, sizeof(buf), 5, "body-five", 9));
+    srv_raw(&m, buf, srv_data(buf, sizeof(buf), 1, "body-one", 8));
+    srv_raw(&m, buf, srv_data(buf, sizeof(buf), 3, "body-three", 10));
+
+    CN_CHECK(CN_H2ConnStart(&c, &m.base) == noErr);
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/1", 0, 0, &cb, &r1, &id) == noErr);
+    CN_CHECK(id == 1);
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/3", 0, 0, &cb, &r3, &id) == noErr);
+    CN_CHECK(id == 3);
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/5", 0, 0, &cb, &r5, &id) == noErr);
+    CN_CHECK(id == 5);
+
+    while (!CN_H2Done(&c) && guard++ < 100000)
+        CN_H2Pump(&c);
+
+    /* every request completed with its own status + body, correctly routed */
+    CN_CHECK(r1.done && r1.result == noErr && r1.status == 200);
+    CN_CHECK(strcmp(r1.body, "body-one") == 0);
+    CN_CHECK(r3.done && r3.result == noErr && r3.status == 200);
+    CN_CHECK(strcmp(r3.body, "body-three") == 0);
+    CN_CHECK(r5.done && r5.result == noErr && r5.status == 200);
+    CN_CHECK(strcmp(r5.body, "body-five") == 0);
+
+    /* the client must have sent three HEADERS frames (one per stream) */
+    {
+        int heads = 0;
+        UInt32 off = CN_H2_PREFACE_LEN;
+        while (off + CN_H2_FRAME_HDR_LEN <= m.sentLen) {
+            CNH2FrameHeader h;
+            CN_H2ParseFrameHeader(m.sent + off, m.sentLen - off, &h);
+            if (off + CN_H2_FRAME_HDR_LEN + h.length > m.sentLen) break;
+            if (h.type == kCNH2Headers) heads++;
+            off += CN_H2_FRAME_HDR_LEN + h.length;
+        }
+        CN_CHECK(heads == 3);
+    }
+}
+
 int main(void)
 {
     CN_RUN(test_basic_get);
     CN_RUN(test_settings_ack_and_ping);
     CN_RUN(test_goaway_fails);
+    CN_RUN(test_multiplex);
     return CN_SUMMARY();
 }
