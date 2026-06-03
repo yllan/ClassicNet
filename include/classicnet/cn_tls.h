@@ -29,6 +29,7 @@ typedef struct {
     mbedtls_x509_crt          cacert;
     int                       handshakeDone;
     int                       lastError;   /* last mbedTLS rc, for error reporting */
+    const char               *alpn[3];     /* NULL-terminated; persists for the config */
 } CNTlsTransport;
 
 #ifdef __cplusplus
@@ -50,6 +51,21 @@ extern "C" {
  */
 OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostname,
                       const char *caPem, UInt32 caLen, CNTransport **out);
+
+/*
+ * Offer ALPN protocols (e.g. "h2", "http/1.1") during the handshake.  Call
+ * after CN_TlsCreate and before driving the handshake (the first poll).  The
+ * string pointers must outlive the transport (string literals are fine).  Pass
+ * proto2 == 0 to offer just one.  Negotiating h2 is how an HTTP/2 client tells
+ * the server it speaks h2 over TLS.
+ */
+OSStatus CN_TlsSetAlpn(CNTlsTransport *tls, const char *proto1, const char *proto2);
+
+/*
+ * The protocol the peer selected via ALPN, or 0 if none was negotiated.  Valid
+ * only after the handshake completes.
+ */
+const char *CN_TlsGetAlpn(CNTlsTransport *tls);
 
 void CN_TlsDispose(CNTlsTransport *tls);
 

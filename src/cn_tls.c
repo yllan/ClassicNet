@@ -148,6 +148,27 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     return noErr;
 }
 
+OSStatus CN_TlsSetAlpn(CNTlsTransport *tls, const char *proto1, const char *proto2)
+{
+    int i = 0;
+    if (tls == 0 || proto1 == 0)
+        return kCNErrBadParam;
+    tls->alpn[i++] = proto1;
+    if (proto2)
+        tls->alpn[i++] = proto2;
+    tls->alpn[i] = 0;                       /* NULL-terminated for mbedTLS */
+    if (mbedtls_ssl_conf_alpn_protocols(&tls->conf, tls->alpn) != 0)
+        return kCNErrTlsInit;
+    return noErr;
+}
+
+const char *CN_TlsGetAlpn(CNTlsTransport *tls)
+{
+    if (tls == 0)
+        return 0;
+    return mbedtls_ssl_get_alpn_protocol(&tls->ssl);
+}
+
 void CN_TlsDispose(CNTlsTransport *tls)
 {
     if (tls == 0) return;

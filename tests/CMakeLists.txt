@@ -24,4 +24,9 @@ if(CN_WITH_MBEDTLS)
     add_executable(tls_smoke tls_smoke.c host_tcp.c)
     target_link_libraries(tls_smoke PRIVATE classicnet)
     target_include_directories(tls_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+    # HTTP/2-over-TLS smoke test (ALPN + h2 GET); run via scripts/test-h2.sh
+    add_executable(h2_smoke h2_smoke.c host_tcp.c)
+    target_link_libraries(h2_smoke PRIVATE classicnet)
+    target_include_directories(h2_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endif()
