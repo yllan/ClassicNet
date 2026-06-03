@@ -9,44 +9,13 @@
 #include "classicnet/cn_tls.h"
 #include "classicnet/cn_h2conn.h"
 #include "classicnet/cn_errors.h"
+#include "cn_mac_time.h"   /* cn_collect_jitter */
 
 #include <Events.h>
-#include <Timer.h>      /* Microseconds */
 #include <stdio.h>
 #include <string.h>
 
-/* Collect a little timing jitter (Microseconds reads spaced by variable work,
-   plus uninitialised stack) to stir into the RNG before the handshake. This is
-   supplementary mixing, not a real entropy source -- see CN_TlsAddEntropy. */
-static void gather_jitter(unsigned char buf[32])
-{
-    UnsignedWide t;
-    int i, j;
-    unsigned long acc;
-    unsigned char junk[32];          /* deliberately uninitialised */
-    for (i = 0; i < 32; i++) {
-        Microseconds(&t);
-        acc = (unsigned long)t.lo ^ ((unsigned long)t.hi << 13) ^ (unsigned long)TickCount();
-        for (j = 0; j < (int)(t.lo & 7); j++) acc = acc * 1103515245u + 12345u;
-        buf[i] = (unsigned char)(acc ^ junk[i]);
-    }
-}
-
-/* Trust anchor selection (production = real bundle; demo = throwaway test CA):
-   -DCN_CA_BUNDLE embeds the Mozilla roots (scripts/gen-ca-bundle.sh) for
-   verifying real public servers; -DCN_VERIFY embeds the test CA
-   (scripts/gen-test-pki.sh) for the local demo server. */
-#if defined(CN_CA_BUNDLE)
-#include "ca_bundle.h"
-#define CN_CA      kCABundle
-#define CN_CA_LEN  ((UInt32)sizeof(kCABundle))
-#define CN_CA_DESC "Mozilla root bundle"
-#elif defined(CN_VERIFY)
-#include "test_ca.h"
-#define CN_CA      kTestCA
-#define CN_CA_LEN  ((UInt32)sizeof(kTestCA))
-#define CN_CA_DESC "embedded test CA"
-#endif
+#include "cn_ca.h"   /* CN_CA / CN_CA_LEN / CN_CA_DESC from -DCN_CA_BUNDLE / -DCN_VERIFY */
 
 typedef struct { int done; UInt16 status; UInt32 bodyLen; OSStatus result; } Cap;
 
@@ -88,7 +57,7 @@ int main(void)
     }
 #endif
     if (CN_TlsSetAlpn(&tls, "h2", 0) != noErr) { printf("set alpn failed\r\n"); goto wait; }
-    { unsigned char j[32]; gather_jitter(j); CN_TlsAddEntropy(&tls, j, sizeof(j)); }
+    { unsigned char j[32]; cn_collect_jitter(j, sizeof(j)); CN_TlsAddEntropy(&tls, j, sizeof(j)); }
 
     printf("TLS handshake (ALPN h2) to %s:%u ...\r\n", host, (unsigned)port);
     t0 = TickCount();

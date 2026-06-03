@@ -8,8 +8,11 @@
 #include "mbedtls/build_info.h"
 #include "mbedtls/platform_util.h"
 
+#include "cn_mac_time.h"
+
 #include <OSUtils.h>   /* GetDateTime */
 #include <Events.h>    /* TickCount */
+#include <Timer.h>     /* Microseconds */
 #include <time.h>      /* struct tm */
 
 /* Seconds between the classic Mac epoch (1904-01-01) and Unix (1970-01-01). */
@@ -65,4 +68,21 @@ struct tm *mbedtls_platform_gmtime_r(const mbedtls_time_t *tt, struct tm *tm_buf
 mbedtls_ms_time_t mbedtls_ms_time(void)
 {
     return (mbedtls_ms_time_t)TickCount() * 1000 / 60;
+}
+
+/* Gather a little timing jitter to stir into the TLS RNG before the handshake:
+   Microseconds reads spaced by variable work, plus uninitialised stack. This is
+   supplementary mixing, not a real entropy source -- see CN_TlsAddEntropy. */
+void cn_collect_jitter(unsigned char *buf, unsigned long n)
+{
+    UnsignedWide t;
+    unsigned char junk[32];          /* deliberately uninitialised */
+    unsigned long i, acc;
+    int j;
+    for (i = 0; i < n; i++) {
+        Microseconds(&t);
+        acc = (unsigned long)t.lo ^ ((unsigned long)t.hi << 13) ^ (unsigned long)TickCount();
+        for (j = 0; j < (int)(t.lo & 7); j++) acc = acc * 1103515245u + 12345u;
+        buf[i] = (unsigned char)(acc ^ junk[i & 31]);
+    }
 }

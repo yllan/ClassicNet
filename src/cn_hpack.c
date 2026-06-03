@@ -81,32 +81,19 @@ static OSStatus cn_huff_decode(const unsigned char *src, UInt32 len,
             }
         }
     }
-    /* Valid padding: we ended at the root, with <=7 leftover bits that were all
-       ones. If node != 0 we stopped mid-code; the leftover-bit count is how many
-       bits we descended past the last leaf. */
+    /* Valid padding (RFC 7541 §5.2): if we stopped mid-code we must be on the
+       all-ones (EOS) prefix and have descended <=7 bits past the last leaf.
+       The all-ones prefix node is reached by walking `bitsAtRoot` 1-edges from
+       the root, so the leftover path is valid iff that node equals where we
+       stopped. */
     if (node != 0) {
-        int depth = bitsAtRoot;
-        UInt32 mask, val;
-        if (depth > 7)
+        int t = 0, j;
+        if (bitsAtRoot > 7)
             return kCNErrHpackBadHuffman;           /* padding too long */
-        /* the path we took must be the all-ones prefix (EOS prefix) */
-        mask = (1u << depth) - 1u;
-        val  = cn_huff_code[256] >> (cn_huff_len[256] - depth);  /* top `depth` EOS bits */
-        (void)val;
-        /* The all-ones requirement: every bit we descended on must be 1. We can
-           verify by walking the EOS code's top bits, which are all ones, so the
-           padding path equals mask only if each step took bit 1. Reconstruct: */
-        {
-            /* Rebuild the bits taken from the last partial byte path is complex;
-               instead require the descended path to be all-ones by re-deriving:
-               a node reached only via 1-bits is exactly the EOS prefix node. */
-            int t = 0, j;
-            for (j = 0; j < depth; j++)
-                t = cn_huff_tree[t][1];
-            if (t != node)
-                return kCNErrHpackBadHuffman;       /* padding bits were not all ones */
-        }
-        (void)mask;
+        for (j = 0; j < bitsAtRoot; j++)
+            t = cn_huff_tree[t][1];
+        if (t != node)
+            return kCNErrHpackBadHuffman;           /* padding bits were not all ones */
     }
     if (outLen)
         *outLen = n;
@@ -254,8 +241,7 @@ static OSStatus cn_emit_indexed(CNHpackDec *d, UInt32 idx,
         return kCNErrHpackBadIndex;
     if (idx <= 61) {
         const CNHpackStatic *e = &cn_hpack_static[idx - 1];
-        return sink(ctx, e->name, (UInt32)strlen(e->name),
-                    e->value, (UInt32)strlen(e->value));
+        return sink(ctx, e->name, e->nameLen, e->value, e->valueLen);
     }
     {
         UInt32 dynPos = idx - 62;                     /* 0 == newest */
@@ -274,7 +260,7 @@ static OSStatus cn_name_of(CNHpackDec *d, UInt32 idx, char *out, UInt32 outCap, 
     if (idx == 0)
         return kCNErrHpackBadIndex;
     if (idx <= 61) {
-        UInt32 n = (UInt32)strlen(cn_hpack_static[idx - 1].name);
+        UInt32 n = cn_hpack_static[idx - 1].nameLen;
         if (n > outCap) return kCNErrHpackOverflow;
         memcpy(out, cn_hpack_static[idx - 1].name, n);
         *outLen = n;
@@ -399,8 +385,8 @@ static UInt32 cn_static_name_index(const char *name, UInt32 nlen)
 {
     UInt32 i;
     for (i = 0; i < 61; i++) {
-        const char *sn = cn_hpack_static[i].name;
-        if (strlen(sn) == nlen && memcmp(sn, name, nlen) == 0)
+        const CNHpackStatic *e = &cn_hpack_static[i];
+        if (e->nameLen == nlen && memcmp(e->name, name, nlen) == 0)
             return i + 1;
     }
     return 0;

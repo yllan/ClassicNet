@@ -14,19 +14,8 @@
 #include <stdio.h>
 #include <string.h>
 
-/* Trust anchor: -DCN_CA_BUNDLE = real Mozilla roots (gen-ca-bundle.sh),
-   -DCN_VERIFY = throwaway test CA (gen-test-pki.sh). */
-#if defined(CN_CA_BUNDLE)
-#include "ca_bundle.h"
-#define CN_CA      kCABundle
-#define CN_CA_LEN  ((UInt32)sizeof(kCABundle))
-#define CN_CA_DESC "Mozilla root bundle"
-#elif defined(CN_VERIFY)
-#include "test_ca.h"
-#define CN_CA      kTestCA
-#define CN_CA_LEN  ((UInt32)sizeof(kTestCA))
-#define CN_CA_DESC "embedded test CA"
-#endif
+#include "cn_ca.h"        /* CN_CA / CN_CA_LEN / CN_CA_DESC from -DCN_CA_BUNDLE / -DCN_VERIFY */
+#include "cn_mac_time.h"  /* cn_mac_time, cn_collect_jitter */
 
 typedef struct { int done; UInt16 status; UInt32 bodyLen; OSStatus result; } Cap;
 
@@ -66,6 +55,10 @@ int main(void)
         printf("TLS create failed\r\n"); goto wait;
     }
 #endif
+
+    /* Harden the RNG seed with platform timing jitter before the handshake
+       (the machine has no hardware RNG -- see CN_TlsAddEntropy). */
+    { unsigned char j[32]; cn_collect_jitter(j, sizeof(j)); CN_TlsAddEntropy(&tls, j, sizeof(j)); }
 
     memset(&cap, 0, sizeof(cap));
     cb.onResponse = on_resp; cb.onData = on_data; cb.onComplete = on_done;
