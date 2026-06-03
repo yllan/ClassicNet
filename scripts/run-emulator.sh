@@ -51,7 +51,11 @@ ARGS=(
     -drive "file=$DISK,format=qcow2,media=disk"
     -g 1024x768x32
     -device usb-kbd -device usb-mouse
-    -net nic,model=sungem -net user
+    # user-net NIC: outbound NAT (guest reaches host at 10.0.2.2) + a host->guest
+    # forward to the in-guest LaunchAPPLServer (TCP 1984) for push-to-run testing.
+    -nic "user,model=sungem,hostfwd=tcp:127.0.0.1:1984-:1984"
+    # control socket for hot-swapping the tools CD without rebooting
+    -monitor "unix:$(dirname "$DISK")/monitor.sock,server,nowait"
 )
 
 case "$MODE" in
@@ -74,7 +78,7 @@ case "$MODE" in
         if [ -n "${CN_TOOLS_DISK:-}" ]; then
             if [ -f "$CN_TOOLS_DISK" ]; then
                 echo "附掛工具碟（CD）: $CN_TOOLS_DISK"
-                ARGS+=( -drive "file=$CN_TOOLS_DISK,format=raw,media=cdrom" )
+                ARGS+=( -drive "file=$CN_TOOLS_DISK,format=raw,media=cdrom,id=toolscd" )
             else
                 echo "警告：CN_TOOLS_DISK 不存在：$CN_TOOLS_DISK"
             fi
