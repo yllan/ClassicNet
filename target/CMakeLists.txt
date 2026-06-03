@@ -51,6 +51,12 @@ if(MBEDTLS_PPC_ROOT)
             ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_url.c
     )
     target_compile_definitions(cnhttps PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1)
+    # -DCN_VERIFY=ON embeds the CA from scripts/gen-test-pki.sh (target/test_ca.h)
+    # and requires certificate verification instead of running insecure.
+    option(CN_VERIFY "Require TLS certificate verification (needs target/test_ca.h)" OFF)
+    if(CN_VERIFY)
+        target_compile_definitions(cnhttps PRIVATE CN_VERIFY=1)
+    endif()
     # MBEDTLS_PPC_ROOT = mbedTLS source root; PPC libs are under build-ppc/library.
     target_include_directories(cnhttps PRIVATE
         ${CMAKE_CURRENT_SOURCE_DIR}/../include
