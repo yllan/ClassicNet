@@ -56,6 +56,7 @@ enum {
     kCNErrH2BadFrame        = -30091,  /* malformed frame header / payload */
     kCNErrH2FrameTooLarge   = -30092,  /* length exceeds caller's cap */
     kCNErrH2BadPreface      = -30093,  /* connection preface mismatch */
+    kCNErrH2StreamError     = -30094,  /* RST_STREAM / GOAWAY ended the exchange */
 
     /* HPACK header compression (RFC 7541) */
     kCNErrHpackIncomplete   = -30095,  /* need more bytes; not an error per se */

@@ -193,5 +193,6 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
   - **權威測試向量 ✅** —— `tests/test_hpack.c` 直接跑 RFC 7541 **Appendix C** 向量：C.3（累積非 Huffman、動態表）、C.4（Huffman 解碼）、C.5（table size 256 強制淘汰）全部逐欄位吻合。`tests/test_h2.c` 涵蓋 frame 解析/round-trip/SETTINGS。10/10 ctest 全過。
   - **Fuzz ✅** —— libFuzzer + ASan/UBSan：HPACK 解碼器 161 萬次（cov 322）、H2 frame 1555 萬次，無 crash／OOB／UB。Huffman 表與靜態表由權威 `hpack` Python 套件產生（`src/cn_hpack_tables.h`），不手抄。
   - **L-B PPC 交叉編譯 ✅** —— `cn_h2.c` / `cn_hpack.c` 以 `powerpc-apple-macos-gcc -std=c90 -Wall -Wextra` 編出 XCOFF、零警告。
-  - **待做（C v2）**：多 stream 多工 + 流量控制的連線層、TLS ALPN 協商接上 `CN_Tls`（mbedTLS 已支援 ALPN）、真機 h2 over HTTPS 端到端。
+  - **連線層（C v2 step 1）host 驗證 ✅** —— `src/cn_h2conn.c`：在任意 `CNTransport` 上跑單一 stream 的 GET，沿用 `CNRequest` 的 pump/callback 模型。送 preface + 自家 SETTINGS（停用 server push）+ HPACK 編碼的 HEADERS（END_HEADERS|END_STREAM）；讀 frame、組 HEADERS+CONTINUATION → HPACK 解碼 → `onResponse`、收 DATA → `onData`、補流量控制 WINDOW_UPDATE、回 SETTINGS/PING 的 ACK、遇 GOAWAY/RST_STREAM 收斂。`tests/test_h2conn.c` 用 mock transport 扮 server（5-byte 切塊逼出 frame 重組）端到端驗證：status 200 + content-type + body、SETTINGS/PING ACK、GOAWAY→錯誤。11/11 ctest 全過；libFuzzer 把 fuzz bytes 當 server 回應餵進 pump 跑 325 萬次（cov 761）無 crash/UB；PPC 交叉編譯零警告。
+  - **待做（C v2 step 2+）**：TLS ALPN 協商接上 `CN_Tls`（mbedTLS 已支援 ALPN）、真機 h2 over HTTPS 端到端、之後再擴成 N-way 多工（把單 stream 欄位陣列化）。
 - **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。

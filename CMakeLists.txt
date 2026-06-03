@@ -37,6 +37,7 @@ add_library(classicnet STATIC
     src/cn_request.c
     src/cn_h2.c
     src/cn_hpack.c
+    src/cn_h2conn.c
 )
 target_include_directories(classicnet PUBLIC include)
 if(CN_HOST)
