@@ -15,6 +15,8 @@ cn_add_test(test_sha1)
 cn_add_test(test_base64)
 cn_add_test(test_request)
 cn_add_test(test_request_flow)
+cn_add_test(test_h2)
+cn_add_test(test_hpack)
 
 # TLS integration smoke test (needs an external server; run via scripts/test-tls.sh)
 if(CN_WITH_MBEDTLS)

@@ -51,6 +51,19 @@ enum {
     kCNErrTlsHandshake      = -30081,  /* handshake failed (incl. cert verify) */
     kCNErrTlsIo             = -30082,  /* TLS read/write error */
 
+    /* HTTP/2 framing (RFC 7540) */
+    kCNErrH2FrameIncomplete = -30090,  /* need more bytes; not an error per se */
+    kCNErrH2BadFrame        = -30091,  /* malformed frame header / payload */
+    kCNErrH2FrameTooLarge   = -30092,  /* length exceeds caller's cap */
+    kCNErrH2BadPreface      = -30093,  /* connection preface mismatch */
+
+    /* HPACK header compression (RFC 7541) */
+    kCNErrHpackIncomplete   = -30095,  /* need more bytes; not an error per se */
+    kCNErrHpackBadInt       = -30096,  /* integer too large / malformed */
+    kCNErrHpackBadIndex     = -30097,  /* table index out of range */
+    kCNErrHpackBadHuffman   = -30098,  /* invalid Huffman code / padding */
+    kCNErrHpackOverflow     = -30099,  /* output or dynamic table overflow */
+
     /* generic */
     kCNErrBadParam          = -30050
 };

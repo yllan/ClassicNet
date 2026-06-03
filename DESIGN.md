@@ -161,7 +161,7 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 - 打包成 CFM shared library（必要時走 CodeWarrior fallback）。
 
 **Phase 2 — 進階**
-- HTTP/2（framing + HPACK + 同 host 多工，對高階 API 透明）。
+- HTTP/2：framing + HPACK ✅（host 驗證，見 §11）；尚缺多工連線層 + ALPN + 真機。
 - 選用：Thread Manager 同步風格 wrapper。
 - 評估 TLS 1.3。
 
@@ -189,4 +189,9 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 - **真實 HTTPS 已跑通 ✅** —— 完整 stack（`CNRequest` → `CN_Tls`（mbedTLS 2.28 LTS）→ host TCP）對 `openssl s_server` 完成真實 TLS 握手並取得 HTTP 200。TLS 層用 `-DCN_WITH_MBEDTLS=ON -DMBEDTLS_ROOT=...` 啟用；mbedTLS 的非阻塞 BIO（WANT_READ/WRITE）直接對應 `CNTransport` 的 would-block 語意。Mac port 待辦：vendoring mbedTLS 原始碼以 Retro68 編譯、自訂熵源、CA bundle。
 - **CFM shared library ✅（你最初的需求）** —— `target/shlb/` 把 ClassicNet 編成 PowerPC CFM shared library（`ClassicNet`，type `shlb` + PEF + `cfrg`，13KB）。真機 OS 9 驗證：一個獨立 app（`shlbdemo`）在啟動時動態載入這個庫，呼叫其匯出的 `CN_ParseURL` / `CN_Sha1` / `CN_Base64Encode`，得到正確結果（SHA1(abc) base64 與期望值吻合）—— 程式碼在庫裡、不在 app 裡（省記憶體 + 可獨立更新）。
   - ⚠️ **發現 Retro68 `MakePEF` 的 bug**：export hash table 的 slot index 用 `key % sz`，但 CFM runtime 用的是別的 reduction，**只在匯出 >9 個（需要多個 hash slot，power>0）時觸發**，匯出 ≤9 個（power=0、單 slot）則正常。所以目前 shlb 匯出收斂在核心 API；完整 API 的 shlb 需修 MakePEF（上游）或仍用 static link。靜態連結形式（cnhttp/cnhttps/cntest）在真機完全正常，是目前可靠的交付方式。
+- **HTTP/2 核心（framing + HPACK）host 驗證 ✅** —— Phase 2 的 HTTP/2 開工。`src/cn_h2.c`：9-byte frame header 解析/序列化、連線 preface、SETTINGS build/parse；`src/cn_hpack.c`：HPACK 標頭壓縮（RFC 7541）解碼器（整數/字串 §5、Huffman §5.2 + Appendix B、靜態表 61 項、動態表含淘汰 §2.3/§4），外加最小無狀態編碼器（literal、無 Huffman、用靜態表 name index）給 client 送 request 用。
+  - **權威測試向量 ✅** —— `tests/test_hpack.c` 直接跑 RFC 7541 **Appendix C** 向量：C.3（累積非 Huffman、動態表）、C.4（Huffman 解碼）、C.5（table size 256 強制淘汰）全部逐欄位吻合。`tests/test_h2.c` 涵蓋 frame 解析/round-trip/SETTINGS。10/10 ctest 全過。
+  - **Fuzz ✅** —— libFuzzer + ASan/UBSan：HPACK 解碼器 161 萬次（cov 322）、H2 frame 1555 萬次，無 crash／OOB／UB。Huffman 表與靜態表由權威 `hpack` Python 套件產生（`src/cn_hpack_tables.h`），不手抄。
+  - **L-B PPC 交叉編譯 ✅** —— `cn_h2.c` / `cn_hpack.c` 以 `powerpc-apple-macos-gcc -std=c90 -Wall -Wextra` 編出 XCOFF、零警告。
+  - **待做（C v2）**：多 stream 多工 + 流量控制的連線層、TLS ALPN 協商接上 `CN_Tls`（mbedTLS 已支援 ALPN）、真機 h2 over HTTPS 端到端。
 - **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。
