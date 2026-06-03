@@ -101,8 +101,14 @@ int main(void)
     CN_OTShutdown();
 
 wait:
+    fflush(stdout);
+#ifndef CN_NO_PAUSE
+    /* Keep the console window open when double-clicked from a CD/Finder. Under
+       LaunchAPPL (push-to-run) this pause jams the server, so headless builds
+       (-DCN_NO_PAUSE, set by the CN_LAUNCHAPPL CMake option) skip it and exit. */
     printf("\r\n--- Press Return to quit. ---\r\n");
     fflush(stdout);
     getchar();
+#endif
     return 0;
 }

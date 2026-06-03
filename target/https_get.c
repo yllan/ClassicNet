@@ -86,8 +86,11 @@ int main(void)
     CN_OTShutdown();
 
 wait:
+    fflush(stdout);
+#ifndef CN_NO_PAUSE
     printf("\r\n--- Press Return to quit. ---\r\n");
     fflush(stdout);
     getchar();
+#endif
     return 0;
 }

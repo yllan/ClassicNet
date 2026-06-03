@@ -139,9 +139,12 @@ int main(void)
     CN_RUN(smoke_ws_accept);
     CN_RUN(smoke_request_flow);
     CN_SUMMARY();
+    fflush(stdout);
+#ifndef CN_NO_PAUSE
     /* Keep the console window readable when run manually (double-clicked). */
     printf("\n--- Press Return to quit. ---\n");
     fflush(stdout);
     getchar();
+#endif
     return cn_tests_failed == 0 ? 0 : 1;
 }

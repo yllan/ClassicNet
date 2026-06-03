@@ -11,6 +11,13 @@ project(ClassicNetTarget C CXX)
 
 set(CMAKE_C_STANDARD 90)
 
+# Headless builds for push-to-run (LaunchAPPL): skip the "Press Return to quit"
+# getchar() so the app exits cleanly instead of jamming LaunchAPPLServer.
+option(CN_LAUNCHAPPL "Build apps headless for LaunchAPPL push-to-run (no getchar pause)" OFF)
+if(CN_LAUNCHAPPL)
+    add_compile_definitions(CN_NO_PAUSE)
+endif()
+
 add_application(cntest CONSOLE
     FILES
         test_runner.c
