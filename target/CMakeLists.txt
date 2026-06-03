@@ -71,4 +71,33 @@ if(MBEDTLS_PPC_ROOT)
         ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedcrypto.a
         OpenTransportAppPPC OpenTransportLib OpenTptInternetLib
         ThreadsLib)   # cy384's mbedtls yields (YieldToAnyThread) during long crypto
+
+    # HTTP/2 over TLS + OT: CN_H2Conn -> CN_Tls(ALPN h2) -> CN_OT (C v2 step 3)
+    add_application(cnh2 CONSOLE
+        FILES
+            h2_get.c
+            cn_mac_time.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_ot.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_tls.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_h2conn.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_h2.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_hpack.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_http.c
+            ${CMAKE_CURRENT_SOURCE_DIR}/../src/cn_url.c
+    )
+    target_compile_definitions(cnh2 PRIVATE CN_WITH_OT=1 CN_WITH_MBEDTLS=1
+        MBEDTLS_USER_CONFIG_FILE="mbedtls_userconfig.h")
+    if(CN_VERIFY)
+        target_compile_definitions(cnh2 PRIVATE CN_VERIFY=1)
+    endif()
+    target_include_directories(cnh2 PRIVATE
+        ${CMAKE_CURRENT_SOURCE_DIR}
+        ${CMAKE_CURRENT_SOURCE_DIR}/../include
+        ${MBEDTLS_PPC_ROOT}/include)
+    target_link_libraries(cnh2
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedtls.a
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedx509.a
+        ${MBEDTLS_PPC_ROOT}/build-ppc/library/libmbedcrypto.a
+        OpenTransportAppPPC OpenTransportLib OpenTptInternetLib
+        ThreadsLib)
 endif()
