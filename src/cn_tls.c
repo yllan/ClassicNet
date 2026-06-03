@@ -148,8 +148,13 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
 
     rc = mbedtls_ssl_setup(&tls->ssl, &tls->conf);
     if (rc != 0) return kCNErrTlsInit;
-    if (hostname != 0)
-        mbedtls_ssl_set_hostname(&tls->ssl, hostname);
+    /* Set the expected name for hostname verification. A failure here (e.g. OOM)
+       must be fatal: silently skipping it would verify the chain but NOT the
+       hostname -- a fail-open hole when verification is required. */
+    if (hostname != 0) {
+        if (mbedtls_ssl_set_hostname(&tls->ssl, hostname) != 0)
+            return kCNErrTlsInit;
+    }
     mbedtls_ssl_set_bio(&tls->ssl, tls, tls_bio_send, tls_bio_recv, 0);
 
     tls->base.poll  = tls_poll;
