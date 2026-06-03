@@ -181,6 +181,17 @@ const char *CN_TlsGetAlpn(CNTlsTransport *tls)
     return mbedtls_ssl_get_alpn_protocol(&tls->ssl);
 }
 
+OSStatus CN_TlsAddEntropy(CNTlsTransport *tls, const void *data, UInt32 len)
+{
+    if (tls == 0)
+        return kCNErrBadParam;
+    /* Reseed with the caller's bytes as additional input -- additive, never
+       weakens the DRBG. Also pulls a fresh draw from the configured source. */
+    if (mbedtls_ctr_drbg_reseed(&tls->drbg, (const unsigned char *)data, (size_t)len) != 0)
+        return kCNErrTlsInit;
+    return noErr;
+}
+
 void CN_TlsDispose(CNTlsTransport *tls)
 {
     if (tls == 0) return;

@@ -67,6 +67,24 @@ OSStatus CN_TlsSetAlpn(CNTlsTransport *tls, const char *proto1, const char *prot
  */
 const char *CN_TlsGetAlpn(CNTlsTransport *tls);
 
+/*
+ * Mix application-collected entropy into the RNG before the handshake.
+ *
+ * Classic Mac OS has no hardware RNG; the built-in seed (mbedtls_hardware_poll
+ * on target: Microseconds/TickCount/mouse) is mediocre. To harden it, collect
+ * unpredictable bytes over the session -- inter-event timing jitter from mouse
+ * and keyboard, TickCount/Microseconds deltas, uninitialised stack -- and feed
+ * them here before driving the handshake. The bytes are stirred into the
+ * CTR_DRBG as additional input via a reseed, so this can only add entropy,
+ * never remove it. Call as many times as you like; passing data==0,len==0 just
+ * pulls a fresh reseed from the configured source.
+ *
+ * This is a mixing hook, not a guarantee: it improves the seed quality but does
+ * not by itself make the RNG cryptographically sound on a machine with no real
+ * entropy source. Collect generously.
+ */
+OSStatus CN_TlsAddEntropy(CNTlsTransport *tls, const void *data, UInt32 len);
+
 void CN_TlsDispose(CNTlsTransport *tls);
 
 #ifdef __cplusplus

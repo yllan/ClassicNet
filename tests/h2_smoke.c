@@ -67,6 +67,16 @@ int main(int argc, char **argv)
     if (CN_TlsSetAlpn(&tls, "h2", 0) != noErr) {
         printf("FAIL: set alpn\n"); return 1;
     }
+    /* Exercise the app-entropy hook (on a real Mac the app would collect mouse/
+       key/timer jitter; here a token sample proves the reseed path works). */
+    {
+        unsigned char extra[16];
+        UInt32 k;
+        for (k = 0; k < sizeof(extra); k++) extra[k] = (unsigned char)(k * 37 + 11);
+        if (CN_TlsAddEntropy(&tls, extra, sizeof(extra)) != noErr) {
+            printf("FAIL: add entropy\n"); return 1;
+        }
+    }
 
     /* The TLS handshake must complete before ALPN is known, so drive poll until
        connected (or failed) before starting the h2 exchange. */
