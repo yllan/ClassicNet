@@ -119,12 +119,13 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
         return kCNErrBadParam;
 
 #ifdef CN_TLS_NEEDS_PSA_INIT
-    if (psa_crypto_init() != PSA_SUCCESS)
-        return kCNErrTlsInit;
+    { psa_status_t ps = psa_crypto_init();
+      if (ps != PSA_SUCCESS) { tls->lastError = (int)ps; return kCNErrTlsInit; } }
 #endif
 
     tls->inner = inner;
     tls->handshakeDone = 0;
+    tls->lastError = 0;
     mbedtls_ssl_init(&tls->ssl);
     mbedtls_ssl_config_init(&tls->conf);
     mbedtls_ctr_drbg_init(&tls->drbg);
@@ -132,12 +133,12 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     mbedtls_x509_crt_init(&tls->cacert);
 
     rc = mbedtls_ctr_drbg_seed(&tls->drbg, mbedtls_entropy_func, &tls->entropy, 0, 0);
-    if (rc != 0) return kCNErrTlsInit;
+    if (rc != 0) { tls->lastError = rc; return kCNErrTlsInit; }
 
     rc = mbedtls_ssl_config_defaults(&tls->conf, MBEDTLS_SSL_IS_CLIENT,
                                      MBEDTLS_SSL_TRANSPORT_STREAM,
                                      MBEDTLS_SSL_PRESET_DEFAULT);
-    if (rc != 0) return kCNErrTlsInit;
+    if (rc != 0) { tls->lastError = rc; return kCNErrTlsInit; }
     mbedtls_ssl_conf_rng(&tls->conf, mbedtls_ctr_drbg_random, &tls->drbg);
 
     /* TLS 1.3 is supported and enabled by default on mbedTLS 3.x. The one thing
@@ -153,7 +154,7 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     if (caPem != 0 && caLen != 0) {
         rc = mbedtls_x509_crt_parse(&tls->cacert,
                                     (const unsigned char *)caPem, caLen);
-        if (rc < 0) return kCNErrTlsInit;
+        if (rc < 0) { tls->lastError = rc; return kCNErrTlsInit; }
         mbedtls_ssl_conf_ca_chain(&tls->conf, &tls->cacert, 0);
         mbedtls_ssl_conf_authmode(&tls->conf, MBEDTLS_SSL_VERIFY_REQUIRED);
     } else {
@@ -162,13 +163,13 @@ OSStatus CN_TlsCreate(CNTlsTransport *tls, CNTransport *inner, const char *hostn
     }
 
     rc = mbedtls_ssl_setup(&tls->ssl, &tls->conf);
-    if (rc != 0) return kCNErrTlsInit;
+    if (rc != 0) { tls->lastError = rc; return kCNErrTlsInit; }
     /* Set the expected name for hostname verification. A failure here (e.g. OOM)
        must be fatal: silently skipping it would verify the chain but NOT the
        hostname -- a fail-open hole when verification is required. */
     if (hostname != 0) {
-        if (mbedtls_ssl_set_hostname(&tls->ssl, hostname) != 0)
-            return kCNErrTlsInit;
+        if ((rc = mbedtls_ssl_set_hostname(&tls->ssl, hostname)) != 0)
+            { tls->lastError = rc; return kCNErrTlsInit; }
     }
     mbedtls_ssl_set_bio(&tls->ssl, tls, tls_bio_send, tls_bio_recv, 0);
 

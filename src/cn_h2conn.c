@@ -4,6 +4,18 @@
 
 #include <string.h>
 
+#ifdef CN_HOST
+/* Host-only diagnostic frame trace, enabled by setting CN_H2_TRACE in the env.
+ * Never compiled into the Mac target. */
+#include <stdio.h>
+#include <stdlib.h>
+static int cn_h2_trace_on(void) {
+    static int v = -1;
+    if (v < 0) v = getenv("CN_H2_TRACE") ? 1 : 0;
+    return v;
+}
+#endif
+
 enum { ST_CONNECT, ST_SEND, ST_RECV, ST_DONE, ST_ERR };
 
 /* ------------------------------------------------------------------ *
@@ -161,6 +173,12 @@ static OSStatus deliver_headers(CNH2Conn *c)
 static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
                               const unsigned char *payload)
 {
+#ifdef CN_HOST
+    if (cn_h2_trace_on())
+        fprintf(stderr, "[h2 recv] type=%u flags=0x%02x stream=%lu len=%lu\n",
+                (unsigned)h->type, (unsigned)h->flags,
+                (unsigned long)h->streamId, (unsigned long)h->length);
+#endif
     switch (h->type) {
 
     case kCNH2Settings:
@@ -188,9 +206,24 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         }
 
     case kCNH2Goaway:
+#ifdef CN_HOST
+        if (cn_h2_trace_on() && h->length >= 8)
+            fprintf(stderr, "[h2 recv] GOAWAY lastStream=%lu errorCode=%lu\n",
+                    (unsigned long)(((UInt32)payload[0] << 24) | ((UInt32)payload[1] << 16)
+                                    | ((UInt32)payload[2] << 8) | payload[3]),
+                    (unsigned long)(((UInt32)payload[4] << 24) | ((UInt32)payload[5] << 16)
+                                    | ((UInt32)payload[6] << 8) | payload[7]));
+#endif
         return kCNErrH2StreamError;               /* terminal for the whole connection */
 
     case kCNH2RstStream:
+#ifdef CN_HOST
+        if (cn_h2_trace_on() && h->length >= 4)
+            fprintf(stderr, "[h2 recv] RST_STREAM stream=%lu errorCode=%lu\n",
+                    (unsigned long)h->streamId,
+                    (unsigned long)(((UInt32)payload[0] << 24) | ((UInt32)payload[1] << 16)
+                                    | ((UInt32)payload[2] << 8) | payload[3]));
+#endif
         stream_complete(c, find_stream(c, h->streamId), kCNErrH2StreamError);
         return noErr;                             /* other streams continue */
 
@@ -285,18 +318,33 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
 /* ------------------------------------------------------------------ *
  * Opening streams
  * ------------------------------------------------------------------ */
+/* Format a UInt32 as decimal into out (max 10 digits); returns the length. */
+static UInt32 u32_to_dec(UInt32 v, char *out)
+{
+    char tmp[10];
+    UInt32 n = 0, i;
+    do { tmp[n++] = (char)('0' + (v % 10)); v /= 10; } while (v != 0);
+    for (i = 0; i < n; i++) out[i] = tmp[n - 1 - i];
+    return n;
+}
+
 static OSStatus open_stream(CNH2Conn *c,
+                            const char *method,
                             const char *scheme, const char *authority, const char *path,
                             const CNHeaderKV *headers, UInt32 headerCount,
+                            const unsigned char *body, UInt32 bodyLen,
                             const CNH2Callbacks *cb, void *ud, UInt32 *streamId)
 {
     unsigned char hpackBuf[1024];
     unsigned char frame[CN_H2_FRAME_HDR_LEN + sizeof(hpackBuf)];
     UInt32 hlen = 0, flen = 0, i, id;
+    UInt8  hflags;
     OSStatus s;
     CNH2Stream *slot = 0;
 
-    if (cb == 0 || scheme == 0 || authority == 0 || path == 0)
+    if (cb == 0 || method == 0 || scheme == 0 || authority == 0 || path == 0)
+        return kCNErrBadParam;
+    if (bodyLen > 0 && body == 0)
         return kCNErrBadParam;
 
     for (i = 0; i < CN_H2_MAX_STREAMS; i++)
@@ -304,7 +352,8 @@ static OSStatus open_stream(CNH2Conn *c,
     if (slot == 0)
         return kCNErrH2StreamError;               /* no free stream slot */
 
-    s = CN_HpackEncodeField(":method", 7, "GET", 3, hpackBuf, sizeof(hpackBuf), &hlen);
+    s = CN_HpackEncodeField(":method", 7, method, (UInt32)strlen(method),
+                            hpackBuf, sizeof(hpackBuf), &hlen);
     if (s == noErr) s = CN_HpackEncodeField(":scheme", 7, scheme, (UInt32)strlen(scheme),
                                             hpackBuf, sizeof(hpackBuf), &hlen);
     if (s == noErr) s = CN_HpackEncodeField(":path", 5, path, (UInt32)strlen(path),
@@ -312,6 +361,12 @@ static OSStatus open_stream(CNH2Conn *c,
     if (s == noErr) s = CN_HpackEncodeField(":authority", 10, authority,
                                             (UInt32)strlen(authority),
                                             hpackBuf, sizeof(hpackBuf), &hlen);
+    if (s == noErr && bodyLen > 0) {              /* content-length for the body */
+        char clbuf[10];
+        UInt32 cllen = u32_to_dec(bodyLen, clbuf);
+        s = CN_HpackEncodeField("content-length", 14, clbuf, cllen,
+                                hpackBuf, sizeof(hpackBuf), &hlen);
+    }
     for (i = 0; s == noErr && i < headerCount; i++)
         s = CN_HpackEncodeField(headers[i].name, (UInt32)strlen(headers[i].name),
                                 headers[i].value, (UInt32)strlen(headers[i].value),
@@ -319,12 +374,38 @@ static OSStatus open_stream(CNH2Conn *c,
     if (s != noErr) return s;
 
     id = c->nextStreamId;
-    s = CN_H2BuildFrame(kCNH2Headers,
-                        (UInt8)(kCNH2FlagEndHeaders | kCNH2FlagEndStream),
-                        id, hpackBuf, hlen, frame, sizeof(frame), &flen);
+#ifdef CN_HOST
+    if (cn_h2_trace_on()) {
+        UInt32 k;
+        fprintf(stderr, "[h2 send] %s %s (stream %lu)\n", method, path, (unsigned long)id);
+        fprintf(stderr, "    :authority: %s\n", authority);
+        for (k = 0; k < headerCount; k++)
+            fprintf(stderr, "    %s: %s\n", headers[k].name, headers[k].value);
+        if (bodyLen) fprintf(stderr, "    [body %lu bytes]\n", (unsigned long)bodyLen);
+    }
+#endif
+    /* END_STREAM on HEADERS only when there is no body; otherwise the DATA
+       frame below carries END_STREAM. */
+    hflags = (UInt8)(kCNH2FlagEndHeaders | (bodyLen > 0 ? 0 : kCNH2FlagEndStream));
+    s = CN_H2BuildFrame(kCNH2Headers, hflags, id, hpackBuf, hlen,
+                        frame, sizeof(frame), &flen);
     if (s != noErr) return s;
     s = h2_queue(c, frame, flen);
     if (s != noErr) return s;
+
+    if (bodyLen > 0) {                            /* DATA frame: body + END_STREAM */
+        CNH2FrameHeader dh;
+        unsigned char dhb[CN_H2_FRAME_HDR_LEN];
+        UInt32 dn = 0;
+        dh.length = bodyLen; dh.type = (UInt8)kCNH2Data;
+        dh.flags = kCNH2FlagEndStream; dh.streamId = id;
+        s = CN_H2WriteFrameHeader(&dh, dhb, sizeof(dhb), &dn);
+        if (s != noErr) return s;
+        s = h2_queue(c, dhb, dn);
+        if (s != noErr) return s;
+        s = h2_queue(c, body, bodyLen);
+        if (s != noErr) return s;
+    }
 
     c->nextStreamId += 2;
     slot->id = id;
@@ -380,7 +461,8 @@ OSStatus CN_H2Request(CNH2Conn *c,
 {
     if (c == 0) return kCNErrBadParam;
     if (c->state == ST_ERR) return c->result;
-    return open_stream(c, scheme, authority, path, headers, headerCount, cb, ud, streamId);
+    return open_stream(c, "GET", scheme, authority, path, headers, headerCount,
+                       0, 0, cb, ud, streamId);
 }
 
 OSStatus CN_H2Get(CNH2Conn *c, CNTransport *t,
@@ -390,7 +472,32 @@ OSStatus CN_H2Get(CNH2Conn *c, CNTransport *t,
 {
     OSStatus s = CN_H2ConnStart(c, t);
     if (s != noErr) return s;
-    return open_stream(c, scheme, authority, path, headers, headerCount, cb, ud, 0);
+    return open_stream(c, "GET", scheme, authority, path, headers, headerCount,
+                       0, 0, cb, ud, 0);
+}
+
+OSStatus CN_H2RequestEx(CNH2Conn *c, const char *method,
+                        const char *scheme, const char *authority, const char *path,
+                        const CNHeaderKV *headers, UInt32 headerCount,
+                        const void *body, UInt32 bodyLen,
+                        const CNH2Callbacks *cb, void *ud, UInt32 *streamId)
+{
+    if (c == 0) return kCNErrBadParam;
+    if (c->state == ST_ERR) return c->result;
+    return open_stream(c, method, scheme, authority, path, headers, headerCount,
+                       (const unsigned char *)body, bodyLen, cb, ud, streamId);
+}
+
+OSStatus CN_H2Post(CNH2Conn *c, CNTransport *t,
+                   const char *scheme, const char *authority, const char *path,
+                   const CNHeaderKV *headers, UInt32 headerCount,
+                   const void *body, UInt32 bodyLen,
+                   const CNH2Callbacks *cb, void *ud)
+{
+    OSStatus s = CN_H2ConnStart(c, t);
+    if (s != noErr) return s;
+    return open_stream(c, "POST", scheme, authority, path, headers, headerCount,
+                       (const unsigned char *)body, bodyLen, cb, ud, 0);
 }
 
 OSStatus CN_H2Pump(CNH2Conn *c)

@@ -107,6 +107,32 @@ OSStatus CN_H2Get(CNH2Conn *c, CNTransport *t,
                   const CNHeaderKV *headers, UInt32 headerCount,
                   const CNH2Callbacks *cb, void *ud);
 
+/*
+ * General form: open a request with an explicit method and an optional request
+ * body. When bodyLen > 0 a `content-length` header is added and the body is
+ * sent as a single DATA frame with END_STREAM (CN_H2Get/CN_H2Request are the
+ * body-less GET special case). The body must fit the connection's outbound
+ * buffer alongside any still-unflushed preface/SETTINGS/HEADERS -- suitable for
+ * the small Thrift control bodies (login, sendMessage, sync), not bulk upload;
+ * a larger body returns kCNErrBufferOverflow. `body` is borrowed only for the
+ * duration of the call (copied into the out queue before returning).
+ */
+OSStatus CN_H2RequestEx(CNH2Conn *c, const char *method,
+                        const char *scheme, const char *authority, const char *path,
+                        const CNHeaderKV *headers, UInt32 headerCount,
+                        const void *body, UInt32 bodyLen,
+                        const CNH2Callbacks *cb, void *ud, UInt32 *streamId);
+
+/*
+ * Convenience: start a connection and open a single POST in one call.
+ * Equivalent to CN_H2ConnStart + CN_H2RequestEx with method "POST".
+ */
+OSStatus CN_H2Post(CNH2Conn *c, CNTransport *t,
+                   const char *scheme, const char *authority, const char *path,
+                   const CNHeaderKV *headers, UInt32 headerCount,
+                   const void *body, UInt32 bodyLen,
+                   const CNH2Callbacks *cb, void *ud);
+
 /* Advance all streams as far as the transport allows, firing callbacks. */
 OSStatus CN_H2Pump(CNH2Conn *c);
 

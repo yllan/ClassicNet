@@ -83,6 +83,13 @@ case "$MODE" in
                 echo "警告：CN_TOOLS_DISK 不存在：$CN_TOOLS_DISK"
             fi
         fi
+        # 可選：附掛一顆可寫入的硬碟（CN_XFER_DISK），用來把 guest 裡的檔案
+        # （例如在 ResEdit 編好的 app）搬回 host。第一次掛上時 OS 9 會說無法
+        # 讀取、請初始化 -> 格成「Mac OS 標準格式 (HFS)」，host 才讀得到。
+        if [ -n "${CN_XFER_DISK:-}" ]; then
+            echo "附掛傳輸碟（可寫硬碟）: $CN_XFER_DISK"
+            ARGS+=( -drive "file=$CN_XFER_DISK,format=raw,media=disk,id=xferdisk" )
+        fi
         ;;
     *)
         echo "用法: $0 [install|run]"

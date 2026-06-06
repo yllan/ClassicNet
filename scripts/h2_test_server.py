@@ -20,11 +20,29 @@ import h2.events
 BODY = b"hello from h2\n"
 
 
+def respond(conn, sid, method, path, auth, body):
+    # Echo any request body back (so the POST integration test can assert the
+    # body round-tripped); GET and other body-less requests get the default BODY.
+    out_body = body if body else BODY
+    sys.stderr.write(">> h2 request from client: %s %s (authority %s) "
+                     "[%d body bytes] -> 200 [%d echoed]\n"
+                     % (method, path, auth, len(body), len(out_body)))
+    sys.stderr.flush()
+    conn.send_headers(sid, [
+        (":status", "200"),
+        ("content-type", "application/octet-stream"),
+        ("content-length", str(len(out_body))),
+    ])
+    conn.send_data(sid, out_body, end_stream=True)
+
+
 def handle(conn_sock):
     config = h2.config.H2Configuration(client_side=False)
     conn = h2.connection.H2Connection(config=config)
     conn.initiate_connection()
     conn_sock.sendall(conn.data_to_send())
+
+    streams = {}   # stream_id -> {"hdrs": dict, "body": bytearray}
 
     while True:
         data = conn_sock.recv(65535)
@@ -34,19 +52,24 @@ def handle(conn_sock):
         for event in events:
             if isinstance(event, h2.events.RequestReceived):
                 hdrs = dict(event.headers)
-                method = hdrs.get(b":method", b"?").decode()
-                path = hdrs.get(b":path", b"?").decode()
-                auth = hdrs.get(b":authority", b"?").decode()
-                sys.stderr.write(">> h2 request from client: %s %s (authority %s) -> 200\n"
-                                 % (method, path, auth))
-                sys.stderr.flush()
-                sid = event.stream_id
-                conn.send_headers(sid, [
-                    (":status", "200"),
-                    ("content-type", "text/plain"),
-                    ("content-length", str(len(BODY))),
-                ])
-                conn.send_data(sid, BODY, end_stream=True)
+                streams[event.stream_id] = {"hdrs": hdrs, "body": bytearray()}
+            elif isinstance(event, h2.events.DataReceived):
+                st = streams.get(event.stream_id)
+                if st is not None:
+                    st["body"].extend(event.data)
+                conn.acknowledge_received_data(
+                    event.flow_controlled_length, event.stream_id)
+            elif isinstance(event, h2.events.StreamEnded):
+                st = streams.pop(event.stream_id, None)
+                if st is None:
+                    continue
+                hdrs = st["hdrs"]
+                respond(conn,
+                        event.stream_id,
+                        hdrs.get(b":method", b"?").decode(),
+                        hdrs.get(b":path", b"?").decode(),
+                        hdrs.get(b":authority", b"?").decode(),
+                        bytes(st["body"]))
         out = conn.data_to_send()
         if out:
             conn_sock.sendall(out)

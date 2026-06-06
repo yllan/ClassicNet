@@ -29,4 +29,9 @@ if(CN_WITH_MBEDTLS)
     add_executable(h2_smoke h2_smoke.c host_tcp.c)
     target_link_libraries(h2_smoke PRIVATE classicnet)
     target_include_directories(h2_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+
+    # HTTP/2-over-TLS POST smoke test (DATA frame + body echo); test-h2-post.sh
+    add_executable(h2_post_smoke h2_post_smoke.c host_tcp.c)
+    target_link_libraries(h2_post_smoke PRIVATE classicnet)
+    target_include_directories(h2_post_smoke PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 endif()

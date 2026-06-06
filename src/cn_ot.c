@@ -6,8 +6,24 @@
 
 enum { OT_ST_CONNECT, OT_ST_CONNECTING, OT_ST_CONNECTED, OT_ST_ERR };
 
-OSStatus CN_OTStartup(void)  { return InitOpenTransport(); }
-void     CN_OTShutdown(void) { CloseOpenTransport(); }
+/* Reference-counted so several connections (e.g. a background sync thread + the
+ * main thread) can each open/close without CloseOpenTransport tearing down OT --
+ * and every endpoint -- out from under the others. Only the first Startup inits
+ * and the last Shutdown closes. */
+static long g_ot_refs = 0;
+OSStatus CN_OTStartup(void)
+{
+    OSStatus e;
+    if (g_ot_refs > 0) { g_ot_refs++; return noErr; }
+    e = InitOpenTransport();
+    if (e == noErr) g_ot_refs = 1;
+    return e;
+}
+void CN_OTShutdown(void)
+{
+    if (g_ot_refs <= 0) return;
+    if (--g_ot_refs == 0) CloseOpenTransport();
+}
 
 /* Build "host:port" without stdio (OTInitDNSAddress wants this form). */
 static void make_hostport(char *dst, UInt32 cap, const char *host, UInt16 port)
