@@ -11,7 +11,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TC="${RETRO68_TOOLCHAIN:-/home/yllan/Projects/Retro68-build/toolchain}"
+TC="${RETRO68_TOOLCHAIN:-$HOME/Projects/Retro68-build/toolchain}"
 SRV="${LAUNCHAPPL_SERVER_BIN:-$(dirname "$TC")/build-target/LaunchAPPL/Server/LaunchAPPLServer.bin}"
 OUT="$ROOT/build-target/laplsrv.iso"
 

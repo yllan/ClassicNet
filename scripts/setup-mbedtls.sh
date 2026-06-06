@@ -19,7 +19,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 DEPS="$ROOT/deps"
-TC="${RETRO68_TOOLCHAIN:-/home/yllan/Projects/Retro68-build/toolchain}"
+TC="${RETRO68_TOOLCHAIN:-$HOME/Projects/Retro68-build/toolchain}"
 TCFILE="$TC/powerpc-apple-macos/cmake/retroppc.toolchain.cmake"
 JOBS="$(nproc 2>/dev/null || echo 4)"
 mkdir -p "$DEPS"

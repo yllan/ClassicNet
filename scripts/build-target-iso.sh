@@ -16,7 +16,7 @@
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-TC="${RETRO68_TOOLCHAIN:-/home/yllan/Projects/Retro68-build/toolchain}"
+TC="${RETRO68_TOOLCHAIN:-$HOME/Projects/Retro68-build/toolchain}"
 TCFILE="$TC/powerpc-apple-macos/cmake/retroppc.toolchain.cmake"
 BUILD="$ROOT/build-target"
 

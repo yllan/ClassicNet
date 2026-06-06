@@ -10,7 +10,7 @@
 set -euo pipefail
 
 APP="${1:?usage: launch-app.sh <app.bin>}"
-TC="${RETRO68_TOOLCHAIN:-/home/yllan/Projects/Retro68-build/toolchain}"
+TC="${RETRO68_TOOLCHAIN:-$HOME/Projects/Retro68-build/toolchain}"
 LAUNCHAPPL="$TC/bin/LaunchAPPL"
 ADDR="${CN_TCP_ADDRESS:-127.0.0.1}"
 
