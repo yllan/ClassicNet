@@ -1,0 +1,21 @@
+ClassicNet
+Copyright 2026 Yung-Luen Lan
+
+Licensed under the Apache License, Version 2.0 (see LICENSE).
+
+This software has the following third-party dependencies. They are fetched at
+build time (see scripts/setup-mbedtls.sh) and are NOT redistributed in this
+repository; their own license terms apply to the fetched copies:
+
+  * Mbed TLS — Apache-2.0
+    https://github.com/Mbed-TLS/mbedtls
+    The PowerPC / Classic Mac OS target links a classic-Mac fork of Mbed TLS
+    (TLS-client configuration + mbedtls_hardware_poll entropy), by cy384.
+
+  * Retro68 cross-compiler toolchain (build dependency only)
+    https://github.com/autc04/Retro68
+
+This software includes data derived from a public specification:
+
+  * The HPACK static table (src/cn_hpack_tables.h) is derived from
+    RFC 7541, Appendix A (HPACK: Header Compression for HTTP/2).

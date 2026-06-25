@@ -1,6 +1,6 @@
 # ClassicNet
 
-現代化網路 stack for Classic Mac OS（PowerPC, Mac OS 8/9）—— TLS / HTTPS / WebSocket，HTTP/2 為第二階段。設計細節見 [DESIGN.md](DESIGN.md)。
+現代化網路 stack for Classic Mac OS（PowerPC, Mac OS 8/9）—— TLS 1.3 / HTTPS / HTTP/2（多工 + 流量控制）/ WebSocket。設計細節見 [DESIGN.md](DESIGN.md)。
 
 ## 專案結構
 
@@ -32,3 +32,8 @@ scripts/run-emulator.sh run             # 之後開機
 ```
 
 ⚠️ QEMU 非 cycle-accurate：可驗證功能正確性，但跑出來的速度**不代表**真實 G3 效能。
+
+## License
+
+Apache-2.0 — 見 [LICENSE](LICENSE) 與 [NOTICE](NOTICE)。© 2026 Yung-Luen Lan。
+mbedTLS / Retro68 等相依套件於 build 時取得、不隨本 repo 散布（見 NOTICE）。
