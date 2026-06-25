@@ -184,6 +184,22 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
     case kCNH2Settings:
         if (h->flags & kCNH2FlagAck)
             return noErr;
+        {   UInt32 i;                                            /* learn the peer's flow-control limits */
+            for (i = 0; i + 6 <= h->length; i += 6) {
+                UInt16 sid = (UInt16)(((UInt32)payload[i] << 8) | payload[i + 1]);
+                UInt32 val = ((UInt32)payload[i + 2] << 24) | ((UInt32)payload[i + 3] << 16)
+                           | ((UInt32)payload[i + 4] << 8)  |  (UInt32)payload[i + 5];
+                if (sid == 4) {                                  /* SETTINGS_INITIAL_WINDOW_SIZE */
+                    SInt32 delta = (SInt32)val - (SInt32)c->peerInitWindow;
+                    UInt32 k;
+                    c->peerInitWindow = val;
+                    for (k = 0; k < CN_H2_MAX_STREAMS; k++)      /* RFC 7540 6.9.2: adjust open streams */
+                        if (c->streams[k].id) c->streams[k].sendWindow += delta;
+                } else if (sid == 5 && val >= 16384u) {          /* SETTINGS_MAX_FRAME_SIZE */
+                    c->peerMaxFrame = val;
+                }
+            }
+        }
         {
             unsigned char ack[CN_H2_FRAME_HDR_LEN];
             UInt32 n = 0;
@@ -227,7 +243,19 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         stream_complete(c, find_stream(c, h->streamId), kCNErrH2StreamError);
         return noErr;                             /* other streams continue */
 
-    case kCNH2WindowUpdate:
+    case kCNH2WindowUpdate: {
+        UInt32 inc;
+        if (h->length != 4) return noErr;
+        inc = (((UInt32)payload[0] << 24) | ((UInt32)payload[1] << 16)
+             | ((UInt32)payload[2] <<  8) |  (UInt32)payload[3]) & 0x7FFFFFFFu;
+        if (h->streamId == 0) {
+            c->connSendWindow += (SInt32)inc;            /* credit the connection send window */
+        } else {
+            CNH2Stream *st = find_stream(c, h->streamId);
+            if (st) st->sendWindow += (SInt32)inc;       /* credit the stream send window */
+        }
+        return noErr;
+    }
     case kCNH2Priority:
         return noErr;
 
@@ -294,18 +322,21 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         if (st && dataLen && st->cb.onData)
             st->cb.onData(c, data, dataLen, st->ud);
 
-        if (h->flags & kCNH2FlagEndStream) {
-            if (st) st->closed = true;
-        } else if (h->length) {
-            /* Replenish the connection window always; the stream window only while
-               the stream is still open (RFC 7540 §6.9). */
+        if (h->length) {
+            /* Connection-level flow control covers EVERY DATA frame, including the
+               one carrying END_STREAM (RFC 7540 §6.9). Skipping it leaks the
+               connection window on each response's final frame until it reaches 0
+               and ALL later transfers stall. The stream window only matters while
+               the stream is still open. */
             OSStatus s = h2_window_update(c, 0, h->length);
             if (s != noErr) return s;
-            if (st) {
+            if (st && !(h->flags & kCNH2FlagEndStream)) {
                 s = h2_window_update(c, st->id, h->length);
                 if (s != noErr) return s;
             }
         }
+        if ((h->flags & kCNH2FlagEndStream) && st)
+            st->closed = true;
         maybe_complete(c, st);
         return noErr;
     }
@@ -393,19 +424,6 @@ static OSStatus open_stream(CNH2Conn *c,
     s = h2_queue(c, frame, flen);
     if (s != noErr) return s;
 
-    if (bodyLen > 0) {                            /* DATA frame: body + END_STREAM */
-        CNH2FrameHeader dh;
-        unsigned char dhb[CN_H2_FRAME_HDR_LEN];
-        UInt32 dn = 0;
-        dh.length = bodyLen; dh.type = (UInt8)kCNH2Data;
-        dh.flags = kCNH2FlagEndStream; dh.streamId = id;
-        s = CN_H2WriteFrameHeader(&dh, dhb, sizeof(dhb), &dn);
-        if (s != noErr) return s;
-        s = h2_queue(c, dhb, dn);
-        if (s != noErr) return s;
-        s = h2_queue(c, body, bodyLen);
-        if (s != noErr) return s;
-    }
 
     c->nextStreamId += 2;
     slot->id = id;
@@ -414,6 +432,10 @@ static OSStatus open_stream(CNH2Conn *c,
     slot->done = false;
     slot->cb = *cb;
     slot->ud = ud;
+        slot->body       = (bodyLen > 0) ? body : 0;   /* sent in chunks by h2_send_bodies */
+        slot->bodyLen    = bodyLen;
+        slot->bodyOff    = 0;
+        slot->sendWindow = (SInt32)c->peerInitWindow;
     c->openCount++;
     if (c->state == ST_DONE)                       /* reopen an idle connection */
         c->state = ST_RECV;
@@ -435,6 +457,9 @@ OSStatus CN_H2ConnStart(CNH2Conn *c, CNTransport *t)
     memset(c, 0, sizeof(*c));
     c->t = t;
     c->nextStreamId = 1;
+    c->connSendWindow = 65535;            /* HTTP/2 default connection send window  */
+    c->peerMaxFrame   = 16384;            /* HTTP/2 default max frame size           */
+    c->peerInitWindow = 65535;            /* HTTP/2 default initial stream window     */
     CN_HpackDecInit(&c->hpack, CN_HPACK_DYN_CAP);
 
     s = h2_queue(c, (const unsigned char *)CN_H2_PREFACE, CN_H2_PREFACE_LEN);
@@ -500,6 +525,54 @@ OSStatus CN_H2Post(CNH2Conn *c, CNTransport *t,
                        (const unsigned char *)body, bodyLen, cb, ud, 0);
 }
 
+/* Push as much pending request body as the flow-control windows and the out
+ * buffer allow. DATA frames are capped at the peer's max frame size; the final
+ * chunk carries END_STREAM. Driven from the pump after crediting WINDOW_UPDATEs,
+ * so a >64KB body streams across pumps respecting the peer's window. */
+static OSStatus h2_send_bodies(CNH2Conn *c)
+{
+    UInt32 i;
+    for (i = 0; i < CN_H2_MAX_STREAMS; i++) {
+        CNH2Stream *st = &c->streams[i];
+        if (st->id == 0 || st->body == 0) continue;
+        while (st->bodyOff < st->bodyLen) {
+            UInt32 remain = st->bodyLen - st->bodyOff;
+            SInt32 win = (c->connSendWindow < st->sendWindow) ? c->connSendWindow : st->sendWindow;
+            UInt32 chunk, cap;
+            unsigned char fh[CN_H2_FRAME_HDR_LEN]; UInt32 fn;
+            CNH2FrameHeader dh; OSStatus s; Boolean last;
+
+            if (win <= 0) break;                         /* flow control: await WINDOW_UPDATE */
+            s = h2_flush(c);                             /* drain the queue before adding a frame */
+            if (s == kCNErrWouldBlock) return noErr;
+            if (s != noErr) return s;
+
+            cap = CN_H2_OUT_CAP - CN_H2_FRAME_HDR_LEN;
+            chunk = remain;
+            if (chunk > c->peerMaxFrame) chunk = c->peerMaxFrame;
+            if (chunk > cap)             chunk = cap;
+            if (chunk > (UInt32)win)     chunk = (UInt32)win;
+
+            last = (Boolean)(st->bodyOff + chunk >= st->bodyLen);
+            dh.length = chunk; dh.type = (UInt8)kCNH2Data;
+            dh.flags  = (UInt8)(last ? kCNH2FlagEndStream : 0); dh.streamId = st->id;
+            s = CN_H2WriteFrameHeader(&dh, fh, sizeof(fh), &fn); if (s != noErr) return s;
+            s = h2_queue(c, fh, fn);                            if (s != noErr) return s;
+            s = h2_queue(c, st->body + st->bodyOff, chunk);     if (s != noErr) return s;
+
+            st->bodyOff       += chunk;
+            c->connSendWindow -= (SInt32)chunk;
+            st->sendWindow    -= (SInt32)chunk;
+            if (last) st->body = 0;                      /* fully queued; END_STREAM sent */
+
+            s = h2_flush(c);
+            if (s == kCNErrWouldBlock) return noErr;     /* queued; flushes next pump */
+            if (s != noErr) return s;
+        }
+    }
+    return noErr;
+}
+
 OSStatus CN_H2Pump(CNH2Conn *c)
 {
     if (c == 0) return kCNErrBadParam;
@@ -561,6 +634,9 @@ OSStatus CN_H2Pump(CNH2Conn *c)
 
             if (c->openCount == 0 && c->nextStreamId > 1)
                 return h2_finish(c);
+            {   OSStatus se = h2_send_bodies(c);        /* push pending request bodies */
+                if (se != noErr) return h2_fail(c, se);
+            }
 
             if (c->rOff > 0) {
                 memmove(c->rbuf, c->rbuf + c->rOff, c->rLen - c->rOff);

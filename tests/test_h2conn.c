@@ -15,7 +15,7 @@
 /* ---- mock transport ---- */
 typedef struct {
     CNTransport   base;
-    unsigned char sent[8192];
+    unsigned char sent[120000];
     UInt32        sentLen;
     unsigned char in[8192];
     UInt32        inLen, inOff;
@@ -40,7 +40,7 @@ static OSStatus m_recv(CNTransport *t, void *buf, UInt32 cap, UInt32 *got, Boole
     UInt32 avail = m->inLen - m->inOff;
     UInt32 n;
     *eof = false;
-    if (avail == 0) { *got = 0; *eof = true; return noErr; }
+    if (avail == 0) { *got = 0; *eof = false; return noErr; }   /* empty now != closed */
     n = avail;
     if (m->chunk && n > m->chunk) n = m->chunk;
     if (n > cap) n = cap;
@@ -319,11 +319,74 @@ static void test_multiplex(void)
     }
 }
 
+/* A >64KB request body must be split into <=16KB DATA frames, gated by the send
+ * flow-control window until the server credits it with WINDOW_UPDATEs, with
+ * END_STREAM only on the final frame. */
+static void test_large_post(void)
+{
+    static MockT m;                          /* static: the big sent buffer is off the stack */
+    static unsigned char body[100000];
+    CNH2Conn c;
+    CNH2Callbacks cb;
+    unsigned char buf[64];
+    UInt32 n, i;
+    int guard = 0, credited = 0, responded = 0;
+
+    for (i = 0; i < sizeof(body); i++) body[i] = (unsigned char)(i & 0x7F);
+    mock_init(&m, 0);
+    cb.onResponse = on_resp; cb.onData = on_data; cb.onComplete = on_done;
+    g_status = 0; g_ctype[0] = 0; g_body[0] = 0; g_bodyLen = 0; g_result = 999; g_completed = 0;
+
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+
+    CN_CHECK(CN_H2ConnStart(&c, &m.base) == noErr);
+    CN_CHECK(CN_H2RequestEx(&c, "POST", "https", "example.com", "/up",
+                            0, 0, body, sizeof(body), &cb, 0, 0) == noErr);
+
+    while (!CN_H2Done(&c) && guard++ < 200000) {
+        CN_H2Pump(&c);
+        if (!credited && m.sentLen > 60000) {           /* initial 64KB window spent: credit more */
+            unsigned char inc[4];
+            inc[0] = 0; inc[1] = 0x03; inc[2] = 0; inc[3] = 0;   /* +196608 */
+            n = 0; CN_H2BuildFrame(kCNH2WindowUpdate, 0, 0, inc, 4, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+            n = 0; CN_H2BuildFrame(kCNH2WindowUpdate, 0, 1, inc, 4, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+            credited = 1;
+        }
+        if (!responded && m.sentLen > 100000) {         /* whole body out: send the response */
+            srv_raw(&m, buf, build_headers(buf, sizeof(buf), true));
+            responded = 1;
+        }
+    }
+
+    CN_CHECK(g_completed == 1 && g_result == noErr && g_status == 200);
+    {
+        UInt32 off = CN_H2_PREFACE_LEN, total = 0;
+        int dataFrames = 0, lastEnd = 0, oversize = 0;
+        while (off + CN_H2_FRAME_HDR_LEN <= m.sentLen) {
+            CNH2FrameHeader h;
+            CN_H2ParseFrameHeader(m.sent + off, m.sentLen - off, &h);
+            if (off + CN_H2_FRAME_HDR_LEN + h.length > m.sentLen) break;
+            if (h.type == kCNH2Data && h.streamId == 1) {
+                dataFrames++;
+                total += h.length;
+                if (h.length > 16384) oversize = 1;
+                lastEnd = (h.flags & kCNH2FlagEndStream) ? 1 : 0;
+            }
+            off += CN_H2_FRAME_HDR_LEN + h.length;
+        }
+        CN_CHECK(total == sizeof(body));    /* whole body sent */
+        CN_CHECK(dataFrames >= 7);          /* 100000 / 16384 -> chunked */
+        CN_CHECK(oversize == 0);            /* every frame within the max frame size */
+        CN_CHECK(lastEnd == 1);             /* END_STREAM only on the final DATA frame */
+    }
+}
+
 int main(void)
 {
     CN_RUN(test_basic_get);
     CN_RUN(test_settings_ack_and_ping);
     CN_RUN(test_goaway_fails);
     CN_RUN(test_multiplex);
+    CN_RUN(test_large_post);
     return CN_SUMMARY();
 }

@@ -18,4 +18,5 @@
 /build-shlb/
 /target/ca_bundle.h
 /build-tls3/
+/build-fctest/
 /deps/mbedtls-host3/

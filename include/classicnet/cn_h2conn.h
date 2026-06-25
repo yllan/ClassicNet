@@ -22,7 +22,7 @@
 
 #define CN_H2_RECV_CAP    (16384u + 9u)  /* one frame at the default max frame size */
 #define CN_H2_HDRBLK_CAP   16384u
-#define CN_H2_OUT_CAP       4096u        /* preface + SETTINGS + queued HEADERS/control */
+#define CN_H2_OUT_CAP   (16384u + 256u)  /* a full max-size DATA frame + preface/SETTINGS/HEADERS */
 #define CN_H2_MAX_STREAMS      8u        /* concurrent requests per connection */
 
 typedef struct {
@@ -51,6 +51,10 @@ typedef struct {
     Boolean       done;          /* onComplete fired */
     CNH2Callbacks cb;
     void         *ud;
+    const unsigned char *body;   /* pending request body, borrowed until complete (0 = none/done) */
+    UInt32        bodyLen;        /* total request-body length */
+    UInt32        bodyOff;        /* request-body bytes already queued */
+    SInt32        sendWindow;     /* per-stream send flow-control window */
 } CNH2Stream;
 
 struct CNH2Conn {
@@ -74,6 +78,9 @@ struct CNH2Conn {
     CNH2Stream    streams[CN_H2_MAX_STREAMS];
     UInt32        nextStreamId;                  /* next odd id to assign (1,3,5,...) */
     UInt32        openCount;                     /* streams not yet completed */
+    SInt32        connSendWindow;                /* connection-level send flow-control window */
+    UInt32        peerMaxFrame;                  /* peer SETTINGS_MAX_FRAME_SIZE (default 16384) */
+    UInt32        peerInitWindow;                /* peer SETTINGS_INITIAL_WINDOW_SIZE (default 65535) */
 
     OSStatus      result;
 };
