@@ -45,11 +45,15 @@ else
     echo ">> host mbedTLS 3.6 already built"
 fi
 
-# --- PPC mbedTLS (cy384 classic-Mac fork, 3.6) ---
+# --- PPC mbedTLS (cy384 opentransport-mbedtls, a fork of Mbed-TLS, 3.6) ---
+# Pinned to a commit for reproducible builds. To bump: set a new SHA from
+# cy384's default branch (`development`) and remove deps/mbedtls-ppc first.
+PPC_MBEDTLS_REF="01162ec6e5853cb9a94374ab2139023b74d65c9d"   # development @ 2024-10-21
 if [ ! -f "$DEPS/mbedtls-ppc/build-ppc/library/libmbedtls.a" ]; then
-    echo ">> PPC mbedTLS (cy384 opentransport-mbedtls) ..."
+    echo ">> PPC mbedTLS (cy384 opentransport-mbedtls @ ${PPC_MBEDTLS_REF:0:12}) ..."
     if [ ! -d "$DEPS/mbedtls-ppc" ]; then
-        git clone --depth 1 https://github.com/cy384/opentransport-mbedtls.git "$DEPS/mbedtls-ppc"
+        git clone https://github.com/cy384/opentransport-mbedtls.git "$DEPS/mbedtls-ppc"
+        git -C "$DEPS/mbedtls-ppc" checkout -q "$PPC_MBEDTLS_REF"
         git -C "$DEPS/mbedtls-ppc" submodule update --init
     fi
     [ -f "$TCFILE" ] || { echo "Retro68 toolchain not found at $TCFILE (set RETRO68_TOOLCHAIN)"; exit 1; }
