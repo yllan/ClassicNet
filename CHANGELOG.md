@@ -1,0 +1,62 @@
+# Changelog
+
+All notable changes to ClassicNet are documented here. Format loosely follows
+[Keep a Changelog](https://keepachangelog.com/); the project predates formal
+version tags, so this first entry captures the current, verified state.
+
+## [0.1.0] — 2026-06-28
+
+First public cut. The full stack is verified end-to-end on real Mac OS 9.2.2
+(PowerPC, under QEMU). The `0.x` version reflects the known caveats below, not
+immaturity of the code paths.
+
+### Added
+
+- **Transport** — async Open Transport (OTTCP) `CNTransport` (non-blocking,
+  notifier + `CN_Idle` pump).
+- **TLS** — mbedTLS-backed TLS 1.2 **and 1.3** (`cn_tls.c`); ALPN
+  (`CN_TlsSetAlpn`/`CN_TlsGetAlpn`); entropy injection hook (`CN_TlsAddEntropy`).
+- **Certificate verification** — fail-closed chain + hostname + validity-date
+  checking when a CA bundle is supplied; `scripts/gen-ca-bundle.sh` builds an
+  embedded Mozilla/curl root bundle; `scripts/gen-test-pki.sh` for the demo CA.
+- **HTTP/1.1** — request state machine, streaming bodies, chunked decoding
+  (`cn_request.c`, `cn_http.c`).
+- **HTTP/2** — framing + SETTINGS (`cn_h2.c`), HPACK (RFC 7541) decode/encode
+  (`cn_hpack.c`), connection layer with **N-way multiplexing**, flow control, and
+  GOAWAY/RST_STREAM handling (`cn_h2conn.c`).
+- **WebSocket** — `wss://` framing (`cn_ws.c`), SHA-1 / Base64 accept (`cn_sha1.c`,
+  `cn_base64.c`), URL parsing (`cn_url.c`).
+- **On-target apps** — `cnhttp`, `cnhttps`, `cnh2`, `cntest`, and a `shlb` demo;
+  Mac Time Manager → mbedTLS bridge (`target/cn_mac_time.c`).
+- **Tooling** — host build under ASan/UBSan, libFuzzer targets for every wire
+  parser, GitHub Actions CI (host tests + fuzz smoke).
+
+### Verified
+
+- Real OS 9.2.2 (QEMU): HTTPS (TLS 1.3, `200`), HTTP/2 over HTTPS with ALPN `h2`
+  and certificate verification (`200`), plain HTTP, and a 15/15 on-target check
+  run (big-endian, zero endianness bugs).
+- Host: full unit suite green under ASan+UBSan; parsers fuzzed for millions of
+  iterations with no crash/OOB/UB; HPACK against RFC 7541 Appendix C vectors.
+
+### Security / known limitations
+
+See [SECURITY.md](SECURITY.md) for the full threat model and production checklist.
+
+- **Entropy floor (highest priority).** No hardware RNG; `mbedtls_hardware_poll`
+  (cy384 fork) is mediocre. `CN_TlsAddEntropy` mixes in session jitter but does not
+  guarantee a strong seed. Collect ample user-input entropy in production.
+- **You must supply CA roots.** No system trust store; build with
+  `-DCN_CA_BUNDLE=ON` and keep the bundle current. No OCSP/CRL revocation checking.
+- **TLS 1.3** is the default and works for both HTTP/1.1 and HTTP/2 (an early h2
+  `-30082` was a NewSessionTicket-handling bug, now fixed — not a fork
+  limitation). `CN_TLS_FORCE_TLS12` pins 1.2.
+- **CFM `shlb` export limit:** a Retro68 `MakePEF` bug breaks exports >9 symbols;
+  static linking is the reliable delivery form.
+- **Single-threaded HPACK** (static scratch buffers; fine under cooperative
+  scheduling).
+
+### Notes
+
+- Licensed Apache-2.0 (see `LICENSE`, `NOTICE`). mbedTLS / Retro68 and the CA
+  bundle are fetched at build time, not redistributed here.

@@ -1,116 +1,162 @@
-# ClassicNet — 設計文件
+# ClassicNet — Design Document
 
-一個給 Classic Mac OS 的現代化網路 stack，提供 TLS / HTTPS / WebSocket（與第二階段的 HTTP/2）。
+A modern network stack for Classic Mac OS, providing TLS / HTTPS / HTTP/2 /
+WebSocket on PowerPC Mac OS 8/9.
+
+> **Reading note.** §1–§10 describe the architecture and the design decisions
+> behind it; they are written in the present tense and reflect what is actually
+> delivered. §11 is the running build-and-verification log (what was proven, and
+> on what). When in doubt about *current* behaviour, the code and §11 win.
 
 ---
 
-## 1. 目標與範圍
+## 1. Goals & scope
 
-- **目標平台：PowerPC，Mac OS 8.0 ~ 9.2.2。**
-  - 不支援 68k（移除 A5 world / CODE resource / segment loader 的複雜度）。
-  - 不支援 7.x（簡化；OT 版本與測試面收斂）。
-- **效能甜蜜點：** G3 等級體驗最佳，但 601/603/604 也應可用。PPC 上 TLS handshake 約落在「數秒內」，屬可用範圍。
-- **提供協定：** TLS 1.2、HTTPS（HTTP/1.1）、WebSocket（`wss://`）。HTTP/2 列第二階段。
+- **Target platform: PowerPC, Mac OS 8.0 – 9.2.2.**
+  - No 68k (avoids the A5 world / CODE resource / segment loader complexity).
+  - No 7.x (narrows the Open Transport version and test surface).
+- **Performance sweet spot:** best on G3-class machines, but 601/603/604 should be
+  usable. A TLS handshake on PPC lands in the "a few seconds" range — usable.
+- **Protocols provided:** TLS 1.2 **and 1.3**, HTTPS (HTTP/1.1), **HTTP/2
+  (multiplexing + flow control)**, and WebSocket (`wss://`). All are implemented
+  and verified end-to-end on real OS 9 (see §11); HTTP/2 and TLS 1.3, originally
+  scoped as "phase 2 / evaluate later", are done.
 
-## 2. 整體架構（分層）
+## 2. Overall architecture (layers)
 
 ```
   ┌─────────────────────────────────────────────┐
   │  App  (cooperative event loop)              │
   └───────────────┬─────────────────────────────┘
-                  │  C API (callback-based, 見 §8)
+                  │  C API (callback-based, see §8)
   ┌───────────────▼─────────────────────────────┐
-  │  L4  HTTP/1.1 · WebSocket · (HTTP/2 = P2)    │
+  │  L4  HTTP/1.1 · WebSocket · HTTP/2 (mux)     │
   ├─────────────────────────────────────────────┤
-  │  L3  TLS 1.2  (mbedTLS, 裁剪)                │
+  │  L3  TLS 1.2 / 1.3  (mbedTLS, trimmed)       │
   ├─────────────────────────────────────────────┤
-  │  L2  CSPRNG / 熵蒐集 · CA 憑證驗證           │
+  │  L2  CSPRNG / entropy gathering · CA verify  │
   ├─────────────────────────────────────────────┤
   │  L1  Transport: Open Transport (OTTCP)       │
-  │      非同步、由 notifier + CN_Idle 推進      │
+  │      async, driven by notifier + CN_Idle     │
   └─────────────────────────────────────────────┘
 ```
 
+Each layer is a `CNTransport` (a small vtable: poll/send/recv/close), so TLS
+stacks directly on Open Transport and HTTP/2 stacks on TLS — same seam all the way
+down.
+
 ## 3. Crypto / TLS
 
-- **採用 mbedTLS（裁剪版）。** 理由：已有 Classic Mac 移植先例可接手、模組化可裁剪到 <64KB RAM、新版有 TLS 1.3 升級空間、ALPN 支援（HTTP/2 需要）。
-  - 參考前作：[antscode/mbedtls-Mac-68k](https://github.com/antscode/mbedtls-Mac-68k)、[bbenchoff MacSSL](https://bbenchoff.github.io/pages/MacSSL.html)。
-  - 備案：若 code size / RAM 擠不下，評估 BearSSL（純 C89、零動態配置，但僅 TLS 1.2 且維護停滯）。
-- **效能取捨（軟體實作、無 AES-NI）：**
-  - cipher 優先協商 **ChaCha20-Poly1305**（軟體下比 AES 快）。
-  - 金鑰交換優先 **ECDHE P-256 + ECDSA**（通常比 RSA-2048 省）。
+- **mbedTLS (trimmed).** Rationale: an existing Classic Mac port to build on, a
+  modular config that trims toward small RAM, headroom for TLS 1.3, and ALPN
+  support (required by HTTP/2).
+  - Prior art: [antscode/mbedtls-Mac-68k](https://github.com/antscode/mbedtls-Mac-68k),
+    [bbenchoff MacSSL](https://bbenchoff.github.io/pages/MacSSL.html).
+  - Considered fallback: BearSSL (pure C89, zero dynamic allocation, but TLS 1.2
+    only and maintenance is stalled).
+- **Performance trade-offs (software crypto, no AES-NI):**
+  - Prefer **ChaCha20-Poly1305** ciphers (faster than AES in software).
+  - Prefer **ECDHE P-256 + ECDSA** key exchange (usually cheaper than RSA-2048).
 
-## 4. 交付形態：CFM shared library
+## 4. Delivery form: CFM shared library
 
-- 主要交付為 **PowerPC CFM（Code Fragment Manager）+ PEF shared library**，與系統服務（OpenTransportLib 等）一致、可獨立更新（TLS/憑證會持續需要修補）、多 client 可共用 code fragment。
-- 記憶體模型走 CFM/PPC 原生路徑，無 A5 globals 困擾。
+- The intended delivery is a **PowerPC CFM (Code Fragment Manager) + PEF shared
+  library**: consistent with system services (OpenTransportLib, etc.), separately
+  updatable (TLS/certificates need ongoing patching), and shareable across
+  clients. In practice the **static-link** form is the reliable vehicle today; the
+  `shlb` works for a small exported API but a Retro68 `MakePEF` bug limits larger
+  exports (see §11).
+- Memory model uses the native CFM/PPC path — no A5 globals.
 
 ## 5. Toolchain
 
-- **主力：[Retro68](https://github.com/autc04/Retro68)**（Linux 上的 GCC cross-compiler，整合 CMake）。日常開發、測試、CI 都用它。
-- **已知風險：** Retro68 產 PPC CFM shared library「能做但文件極缺」。流程：`gcc -shared` → XCOFF → `MakePEF` → `MakeImport`（import stub）→ `Rez`。某些結構（如 `ImportMacFunctions`）無文件，需逆向摸索。參見 [Retro68 #97](https://github.com/autc04/Retro68/issues/97)。
-- **已驗證 ✅：** `Retro68/Samples/SharedLibrary` 的配方實測可產出 CFM shared library（見 §11）。先前「文件極缺」的風險大幅降級。
-- **Fallback：** 若 shared library 輸出卡死，把「打包成 CFM shared library」這一步移到 **CodeWarrior（SheepShaver 模擬器內）**，其 CFM shared library 支援為一等公民。
+- **Primary: [Retro68](https://github.com/autc04/Retro68)** (a GCC cross-compiler
+  on Linux, integrated with CMake). Day-to-day development, testing, and CI use it.
+- **Known risk:** producing a PPC CFM shared library with Retro68 is "doable but
+  barely documented." Flow: `gcc -shared` → XCOFF → `MakePEF` → `MakeImport`
+  (import stub) → `Rez`. Some structures (e.g. `ImportMacFunctions`) are
+  undocumented and had to be reverse-engineered. See
+  [Retro68 #97](https://github.com/autc04/Retro68/issues/97).
+- **Verified ✅:** the `Retro68/Samples/SharedLibrary` recipe does produce a CFM
+  shared library (see §11), so the earlier "barely documented" risk is largely
+  retired.
+- **Fallback:** if shared-library output stalls, move the "package as CFM shared
+  library" step to **CodeWarrior (inside the SheepShaver emulator)**, where CFM
+  shared libraries are a first-class output.
 
-## 6. 三根硬骨頭（與 OS 版本無關，必須正面解）
+## 6. The three hard problems (OS-version-independent; must be solved head-on)
 
-1. **熵源（entropy）。** 無硬體 RNG、無 `/dev/random`。需自建 CSPRNG seed，混合 `Microseconds()`、`TickCount()`、滑鼠座標、記憶體狀態、OT 封包時序等。內建蒐集器品質不足時須在 log 警告。**這是安全前提，非選用。**
-2. **Root CA 憑證庫。** 系統無信任憑證庫。需自行 bundle 一份 CA roots（DER/PEM blob）並規劃更新策略；另提供 `onVerifyPeer` callback 讓 app 做 TOFU 或彈窗由使用者裁決。
-3. **合作式多工 → 非同步 API。** OS 8/9 應用層仍是合作式多工、無搶佔式執行緒。不可 block 在 I/O。整個 library 為事件驅動狀態機（見 §8）。
+1. **Entropy.** No hardware RNG, no `/dev/random`. We build a CSPRNG seed by mixing
+   `Microseconds()`, `TickCount()`, mouse coordinates, memory state, and OT packet
+   timing. When the built-in collector's quality is insufficient, it must warn in
+   the log. **This is a security precondition, not optional.** (See §11 for the
+   `CN_TlsAddEntropy` hook and its caveats.)
+2. **Root CA store.** The system has no trust store. We bundle a set of CA roots
+   (a DER/PEM blob) and plan an update strategy; an `onVerifyPeer` callback also
+   lets the app do TOFU or prompt the user.
+3. **Cooperative multitasking → async API.** OS 8/9 app code is cooperatively
+   scheduled with no preemptive threads. We must never block on I/O. The whole
+   library is an event-driven state machine (see §8).
 
-## 7. 已鎖定的設計決策
+## 7. Locked design decisions
 
-1. **核心為純 callback。** 同步風格 wrapper（Thread Manager + `YieldToAnyThread`）列為日後選用層，不進第一階段核心。
-2. **錯誤模型用 `OSStatus`**，切一段自訂負數區間給 ClassicNet（暫定 `kCNErrBase = -30000` 起向下）。
-3. **HTTP/2 多工列第二階段。** 第一階段每個 request 各自一條 HTTP/1.1 over TLS。
+1. **Core is pure callback.** A synchronous-style wrapper (Thread Manager +
+   `YieldToAnyThread`) is an optional later layer, not in the core.
+2. **Error model is `OSStatus`,** with a custom negative range carved out for
+   ClassicNet (`kCNErrBase = -30000`, going downward).
+3. **HTTP/2 multiplexing** was originally phase 2; it is now implemented (see §11).
+   HTTP/1.1-over-TLS remains available per request.
 
-## 8. 非同步 API 草圖
+## 8. Async API sketch
 
-### 8.1 設計原則
-1. 永不 block，一律「發起 → callback 通知」。
-2. **callback 一律在 system task 時間觸發**（從 `CN_Idle` 內），絕不在 interrupt / OT notifier 時間。notifier 只設旗標，工作延後到 `CN_Idle`。
-3. response body 用串流（`onData` 分塊），不整包進記憶體。
+### 8.1 Principles
+1. Never block — always "initiate → notify via callback."
+2. **Callbacks always fire at system-task time** (from inside `CN_Idle`), never at
+   interrupt / OT-notifier time. The notifier only sets a flag; work is deferred to
+   `CN_Idle`.
+3. Response bodies stream (`onData` in chunks) rather than buffering whole.
 
-### 8.2 生命週期與 pump
+### 8.2 Lifecycle & pump
 ```c
 OSStatus  CN_Init(const CNConfig *config, CNContextRef *outCtx);
 void      CN_Dispose(CNContextRef ctx);
 
-/* 心臟：從 event loop 頻繁呼叫，做有界工作後返回；所有 callback 在此觸發 */
+/* The heartbeat: call frequently from the event loop; does bounded work and
+   returns. All callbacks fire here. */
 void      CN_Idle(CNContextRef ctx);
 
-/* 給 WaitNextEvent 的 sleep：回傳最多再過幾個 tick 該再呼叫 CN_Idle */
+/* Sleep hint for WaitNextEvent: max ticks before CN_Idle should run again. */
 UInt32    CN_NextIdleDelay(CNContextRef ctx);
 ```
-Main loop：
+Main loop:
 ```c
 for (;;) {
     UInt32 sleep = CN_NextIdleDelay(ctx);
     WaitNextEvent(everyEvent, &evt, sleep, nil);
-    /* ... 處理自己的 evt ... */
+    /* ... handle your own evt ... */
     CN_Idle(ctx);
 }
 ```
 
-### 8.3 Config（三根硬骨頭的注入點）
+### 8.3 Config (injection points for the three hard problems)
 ```c
 typedef struct {
-    void (*gatherEntropy)(void *buf, UInt32 want, UInt32 *got, void *ud); /* nil = 內建蒐集器 */
-    const void   *caBundle;       /* nil = 無法驗證憑證 */
+    void (*gatherEntropy)(void *buf, UInt32 want, UInt32 *got, void *ud); /* nil = built-in collector */
+    const void   *caBundle;       /* nil = cannot verify certificates */
     UInt32        caBundleLen;
-    CNAllocator  *allocator;      /* 選用：自訂 memory pool */
+    CNAllocator  *allocator;      /* optional: custom memory pool */
     void         *userData;
 } CNConfig;
 ```
 
-### 8.4 高階 HTTP API
+### 8.4 High-level HTTP API
 ```c
 typedef struct {
     CNCertDecision (*onVerifyPeer)(CNRequestRef r, const CNCertInfo *info,
                                    OSStatus dflt, void *ud);
     void    (*onResponse)(CNRequestRef r, UInt16 status,
                           const CNHeader *hdrs, UInt32 n, void *ud);
-    Boolean (*onData)    (CNRequestRef r, const void *bytes, UInt32 len, void *ud); /* false=背壓 */
+    Boolean (*onData)    (CNRequestRef r, const void *bytes, UInt32 len, void *ud); /* false = back-pressure */
     void    (*onComplete)(CNRequestRef r, OSStatus result, void *ud);
 } CNRequestCallbacks;
 
@@ -121,13 +167,13 @@ typedef struct {
     UInt32                    headerCount;
     const void               *body;
     UInt32                    bodyLength;
-    UInt32 (*bodyProvider)(CNRequestRef r, void *buf, UInt32 max, void *ud); /* 串流上傳 */
+    UInt32 (*bodyProvider)(CNRequestRef r, void *buf, UInt32 max, void *ud); /* streaming upload */
     const CNRequestCallbacks *cb;
     void                     *userData;
 } CNRequestParams;
 
 OSStatus CN_HTTPRequest(CNContextRef ctx, const CNRequestParams *p, CNRequestRef *out);
-void     CN_RequestCancel(CNRequestRef r);   /* 安全：狀態機收尾後才釋放 */
+void     CN_RequestCancel(CNRequestRef r);   /* safe: frees only after the state machine winds down */
 ```
 
 ### 8.5 WebSocket
@@ -146,58 +192,241 @@ OSStatus CN_WSSend(CNWebSocketRef ws, CNWSOpcode op, const void *data, UInt32 le
 void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 ```
 
-## 9. 路線圖
+## 9. Roadmap
 
-**Phase 0 — 垂直切片（驗證效能可行性，最大未知數）**
-- Retro68 build 環境 + CMake。
-- OT TCP 連線（非同步、notifier + `CN_Idle`）。
-- 接手 mbedTLS port，自製熵源，ChaCha20 cipher。
-- 目標：成功完成一次 **HTTPS GET**（static link 即可），量測 G3/603 上的 handshake 時間。
+**Phase 0 — vertical slice (prove performance feasibility, the biggest unknown) ✅**
+- Retro68 build environment + CMake.
+- OT TCP connection (async, notifier + `CN_Idle`).
+- Adopt the mbedTLS port, custom entropy source, ChaCha20 cipher.
+- Goal: complete one **HTTPS GET** (static link is fine), measure handshake time on
+  G3/603. — *Done; measured under QEMU, see §11.*
 
-**Phase 1 — 可用的 library**
-- 完整 HTTP/1.1（redirect、chunked、streaming up/down）。
-- CA bundle + `onVerifyPeer` 憑證驗證。
-- WebSocket。
-- 打包成 CFM shared library（必要時走 CodeWarrior fallback）。
+**Phase 1 — a usable library ✅**
+- Full HTTP/1.1 (redirect, chunked, streaming up/down).
+- CA bundle + `onVerifyPeer` certificate verification.
+- WebSocket.
+- Package as a CFM shared library (CodeWarrior fallback if needed). — *Static-link
+  delivered and reliable; `shlb` partial, see §11.*
 
-**Phase 2 — 進階**
-- HTTP/2：framing + HPACK ✅（host 驗證，見 §11）；尚缺多工連線層 + ALPN + 真機。
-- 選用：Thread Manager 同步風格 wrapper。
-- 評估 TLS 1.3。
+**Phase 2 — advanced ✅ (delivered)**
+- HTTP/2: framing + HPACK, connection layer, ALPN, real-machine, and N-way
+  multiplexing — all done (see §11).
+- TLS 1.3 — implemented, default on mbedTLS 3.x, verified end-to-end.
+- Optional: a Thread Manager synchronous-style wrapper — still optional/future.
 
-## 10. 待議
-- 自訂錯誤碼區間的最終配置。
-- CA bundle 的更新機制（隨 app / 獨立 extension / 線上更新）。
-- 記憶體配置策略（大 buffer 來源：OT 提供 vs 自有 pool）。
+## 10. Open questions
 
-## 11. 建置與驗證現況
+- Final layout of the custom error-code range.
+- CA bundle update mechanism (bundled with the app / separate extension / online).
+- Memory allocation strategy (large-buffer source: OT-provided vs. own pool).
 
-骨架已可運作，下列事項以實機 toolchain 驗證過：
+## 11. Build & verification status
 
-- **CFM shared library 路徑已打通 ✅** —— `Retro68/Samples/SharedLibrary` 的配方（`add_library SHARED` → `MakePEF` → `Rez -t shlb` 帶 `cfrg` + `-Wl,-bE:exports`）實測能產出 `file` 判定為 `shared library` 的 PEF。§5 的最大未知數解除。
-- **可攜碼雙向編譯 ✅** —— `src/`（`cn_url.c` / `cn_http.c`）同時在 host（gcc, x86）與 PPC target（`powerpc-apple-macos-gcc`）編譯通過、零警告。
-- **型別 seam 的一個真實坑** —— Retro68 multiversal interfaces 定義 `OSErr`（16-bit）但**無 `OSStatus`**（Carbon 時代型別）。已在 `cn_types.h` 的 Mac 分支補 `typedef SInt32 OSStatus`；決策 #2（用 OSStatus）維持不變。
-- **L-A host 測試 ✅** —— CMake + AddressSanitizer + UBSan，`ctest` 跑 `cn_url` / `cn_http` 兩組全過。
-- **Fuzzing（QA #1）✅** —— libFuzzer（clang）對兩個 parser 各跑千萬級次數無 crash／無 OOB／無 UBSan。見 `scripts/run-fuzz.sh`。
-- **真機 HTTPS 打通 ✅🎉🎉 —— 專案核心目標達成** —— 在 **QEMU 上的真實 OS 9.2.2 (PowerPC)** 執行 `cnhttps`，用完整 stack（`CN_OT`(Open Transport) → `CN_Tls`(mbedTLS 3.6) → `CNRequest`）完成真實 **TLS 握手**並抓到 `https://` 頁面，`result=0, status=200`。TLS 跑在我們自製的熵源（`mbedtls_hardware_poll`：Microseconds/TickCount/mouse）上。`CN_Tls` 直接疊在 `CN_OT` 之上（兩者都是 `CNTransport`）。踩到的兩個真坑並修正：(1) mbedTLS 3.x TLS 1.3 需先 `psa_crypto_init()`；(2) 測試用的 openssl `s_server` 要 `-naccept` 多連線（單連線版會被半開連線卡死，與我們的 code 無關）。**「現代 TLS/HTTPS 跑在 Classic Mac OS」這個專案前提，在真實硬體上端到端證明完成。**
-  - **效能數字**：一次完整 TLS 1.2 握手（ECDHE-RSA-AES256-GCM、RSA-2048）+ fetch 量到 **13 ticks ≈ 0.21 s**。⚠️ 這是 **QEMU 模擬速度**（mac99/G4），非真實 G3/G4 —— QEMU 在現代主機上跑 PPC 遠快於當年硬體，真機會慢數倍～數十倍。確認的是「程式路徑有效率、握手不病態慢」；真機效能仍需實機量測。
-- **憑證驗證 ✅** —— `cn_tls.c` 傳入 CA bundle 時 `VERIFY_REQUIRED`，驗**憑證鏈 + 主機名**。Host 測試（`scripts/test-tls-verify.sh`）3/3：CA 簽署+主機相符→接受、未知 CA→拒絕、主機名不符→拒絕。真機（`cnhttps -DCN_VERIFY=ON`，嵌入測試 CA via `scripts/gen-test-pki.sh`）對 CA 簽署的 server 驗證通過、`status=200`。fail-closed 由 host 證明（同一份 `cn_tls.c`）。
-  - **有效期檢查 ✅** —— 重編 PPC mbedTLS 開 `MBEDTLS_HAVE_TIME`，並用 compile-time macro 把 Mac Time Manager 接給 mbedTLS（`target/cn_mac_time.c`：`GetDateTime`→Unix epoch、portable `gmtime_r`、`TickCount`→ms）。真機驗證：valid 憑證在有效期內通過（clock 讀到 ~2026）、2021 過期憑證被擋（`-0x2700` X509_CERT_VERIFY_FAILED）。
-  - **真實 CA bundle ✅（production 硬化）** —— `scripts/gen-ca-bundle.sh` 把 Mozilla/curl 根憑證（系統 `ca-certificates.crt` 或下載 `cacert.pem`，147 根 ~221KB）產成 `target/ca_bundle.h`（內嵌 C 字串，gitignored），target app 用 `-DCN_CA_BUNDLE=ON` 即驗真實公開伺服器。Host 證明（`scripts/test-tls-real.sh`）：同一份 `cn_tls.c` 對**真實 example.com** 用 147 根 bundle 驗證鏈+主機名 → `status 200`，主機名不符 → 拒（fail-closed）。bundle 在 PPC 編譯器編過（221152 bytes 字面量）。⚠️ RAM：全 bundle parse 成 live X.509 約數百 KB，RAM 吃緊的機器可手動裁剪 `cacert.pem` 至需要的根再重產。
-  - **TLS 1.3 完整支援 ✅（production 硬化）** —— 先前 -30082 的真正根因查清：mbedTLS 3.x 把 TLS 1.3 的 **post-handshake NewSessionTicket** 以非致命碼 `MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET (-0x7B00)` 從 `ssl_read`/`ssl_write` 回傳，而我們的 `tls_recv`/`tls_send` 把它當 `kCNErrTlsIo` 致命處理→誤判失敗。修法：把該碼當 would-block（retry）。在 **host 用 vanilla mbedTLS 3.6.0（與 PPC fork 同版）重現並修好**：`scripts/test-tls13.sh` 證明 **h2-over-1.3 ✅、HTTP/1.1-over-1.3 ✅、1.2 fallback ✅**；對**真實 example.com**（`TLSv1.3, AES-256-GCM`）+ 真 147-root bundle → `status 200`。1.3 現為**預設啟用**，`CN_TLS_FORCE_TLS12` 為 fallback 逃生口。**真機端到端確認 ✅🎉**：QEMU OS 9 上 cnh2（1.3 enabled）對 host h2 server，server log 顯示 `version=TLSv1.3 ALPN=h2 / GET / -> 200`、cnh2 console `result=0 status=200`（修正前同情境為 -30082）。⚠️ 建置教訓：`cmake --build --target cnh2` 只建 xcoff，**不跑產生 MacBinary `.bin` 的 Rez 後製**；要全量 `cmake --build build-target` 才會更新 `.bin`（否則 ISO 帶舊 binary，正是先前真機仍 -30082 的原因）。
-  - **熵注入 hook ✅（production 硬化）** —— `CN_TlsAddEntropy(tls, data, len)`：app 把 session 期間蒐集的不可預測位元（滑鼠/鍵盤事件間隔、Microseconds/TickCount delta、未初始化 stack）在握手前餵入，經 `mbedtls_ctr_drbg_reseed` 當 additional input **疊加**進 DRBG（只增不減）。Host 驗證（`h2_smoke` 注入後仍握手成功）；`target/h2_get.c` 的 `gather_jitter()` 示範真機蒐集並注入。⚠️ 這是**混合 hook、非保證**：改善種子品質，但在無真硬體熵的機器上不能單靠它就讓 RNG 達密碼學等級——`mbedtls_hardware_poll`（cy384 標註 mediocre）仍是底層，production 應蒐集大量使用者輸入熵。
-- **L-D 真機網路打通 ✅🎉** —— 在 **QEMU 上的真實 OS 9.2.2 (PowerPC)** 執行 `cnhttp`，用完整 stack（`CN_OT`（Open Transport）→ `CNRequest` 非同步狀態機 → HTTP parser）對 host 的 http server 發出 GET，拿到 `status=200, body=74 bytes`；host 端 server log 同步確認收到該請求。整個垂直切片在真機上端到端運作。OT transport（`cn_ot.c`）為非阻塞、`kOTNoDataErr`→would-block，完美套進合作式 pump。前置：Retro68 以 Apple UI 3.4 重建（提供 OT headers + 對得上的 stub）、OS 9 guest TCP/IP 設為 DHCP。
-- **L-C 真機驗證通過 ✅** —— on-target test runner（`target/`）編成 PowerPC OS 9 app，在 **QEMU 上的真實 OS 9.2.2** 跑出 **15 checks, 0 failed**。涵蓋 URL/HTTP parser、WebSocket 16/64-bit 長度欄位、SHA-1、Base64、WebSocket accept、非同步 request 狀態機 —— 證明在**大端 PowerPC** 上行為與 host 一致、零端序 bug。流程：`scripts/build-target-iso.sh`（Retro68 編譯 → MacBinary → ISO9660）+ `CN_TOOLS_DISK=... scripts/run-emulator.sh run`（OS 9 用 StuffIt Expander 解 MacBinary 後執行）。
-- **真實 HTTPS 已跑通 ✅** —— 完整 stack（`CNRequest` → `CN_Tls`（mbedTLS 2.28 LTS）→ host TCP）對 `openssl s_server` 完成真實 TLS 握手並取得 HTTP 200。TLS 層用 `-DCN_WITH_MBEDTLS=ON -DMBEDTLS_ROOT=...` 啟用；mbedTLS 的非阻塞 BIO（WANT_READ/WRITE）直接對應 `CNTransport` 的 would-block 語意。Mac port 待辦：vendoring mbedTLS 原始碼以 Retro68 編譯、自訂熵源、CA bundle。
-- **CFM shared library ✅（你最初的需求）** —— `target/shlb/` 把 ClassicNet 編成 PowerPC CFM shared library（`ClassicNet`，type `shlb` + PEF + `cfrg`，13KB）。真機 OS 9 驗證：一個獨立 app（`shlbdemo`）在啟動時動態載入這個庫，呼叫其匯出的 `CN_ParseURL` / `CN_Sha1` / `CN_Base64Encode`，得到正確結果（SHA1(abc) base64 與期望值吻合）—— 程式碼在庫裡、不在 app 裡（省記憶體 + 可獨立更新）。
-  - ⚠️ **發現 Retro68 `MakePEF` 的 bug**：export hash table 的 slot index 用 `key % sz`，但 CFM runtime 用的是別的 reduction，**只在匯出 >9 個（需要多個 hash slot，power>0）時觸發**，匯出 ≤9 個（power=0、單 slot）則正常。所以目前 shlb 匯出收斂在核心 API；完整 API 的 shlb 需修 MakePEF（上游）或仍用 static link。靜態連結形式（cnhttp/cnhttps/cntest）在真機完全正常，是目前可靠的交付方式。
-- **HTTP/2 核心（framing + HPACK）host 驗證 ✅** —— Phase 2 的 HTTP/2 開工。`src/cn_h2.c`：9-byte frame header 解析/序列化、連線 preface、SETTINGS build/parse；`src/cn_hpack.c`：HPACK 標頭壓縮（RFC 7541）解碼器（整數/字串 §5、Huffman §5.2 + Appendix B、靜態表 61 項、動態表含淘汰 §2.3/§4），外加最小無狀態編碼器（literal、無 Huffman、用靜態表 name index）給 client 送 request 用。
-  - **權威測試向量 ✅** —— `tests/test_hpack.c` 直接跑 RFC 7541 **Appendix C** 向量：C.3（累積非 Huffman、動態表）、C.4（Huffman 解碼）、C.5（table size 256 強制淘汰）全部逐欄位吻合。`tests/test_h2.c` 涵蓋 frame 解析/round-trip/SETTINGS。10/10 ctest 全過。
-  - **Fuzz ✅** —— libFuzzer + ASan/UBSan：HPACK 解碼器 161 萬次（cov 322）、H2 frame 1555 萬次，無 crash／OOB／UB。Huffman 表與靜態表由權威 `hpack` Python 套件產生（`src/cn_hpack_tables.h`），不手抄。
-  - **L-B PPC 交叉編譯 ✅** —— `cn_h2.c` / `cn_hpack.c` 以 `powerpc-apple-macos-gcc -std=c90 -Wall -Wextra` 編出 XCOFF、零警告。
-  - **連線層（C v2 step 1）host 驗證 ✅** —— `src/cn_h2conn.c`：在任意 `CNTransport` 上跑單一 stream 的 GET，沿用 `CNRequest` 的 pump/callback 模型。送 preface + 自家 SETTINGS（停用 server push）+ HPACK 編碼的 HEADERS（END_HEADERS|END_STREAM）；讀 frame、組 HEADERS+CONTINUATION → HPACK 解碼 → `onResponse`、收 DATA → `onData`、補流量控制 WINDOW_UPDATE、回 SETTINGS/PING 的 ACK、遇 GOAWAY/RST_STREAM 收斂。`tests/test_h2conn.c` 用 mock transport 扮 server（5-byte 切塊逼出 frame 重組）端到端驗證：status 200 + content-type + body、SETTINGS/PING ACK、GOAWAY→錯誤。11/11 ctest 全過；libFuzzer 把 fuzz bytes 當 server 回應餵進 pump 跑 325 萬次（cov 761）無 crash/UB；PPC 交叉編譯零警告。
-  - **TLS ALPN + 真實 h2 server 互通（C v2 step 2，host）✅** —— `cn_tls.c` 加 `CN_TlsSetAlpn`（握手帶 `h2`）/ `CN_TlsGetAlpn`（讀協商結果），協定字串陣列存在 `CNTlsTransport` 以滿足 mbedTLS 存活期；全在 `CN_WITH_MBEDTLS` 內。`tests/h2_smoke.c` 跑完整 client stack `CN_H2Conn → CN_Tls(ALPN h2) → TCP`，`scripts/test-h2.sh` 架一台**真的 Python `h2` 函式庫 TLS server**（非自家實作），**開憑證驗證**（server 自簽憑證當信任 CA、host=localhost）。結果：ALPN 協商 `h2`、GET over TLS → **status 200 + body**。與標準相容的 h2 實作互通成立。
-  - **真機 HTTP/2 over HTTPS 打通 ✅🎉（C v2 step 3）** —— 在 **QEMU 上的真實 OS 9.2.2 (PowerPC)** 執行 `cnh2`（`target/h2_get.c`），完整堆疊 `CN_H2Conn → CN_Tls(ALPN h2) → CN_OT`（皆 `CNTransport`）對 host 的 Python `h2` server 完成 **TLS 握手 + ALPN 協商 h2 + 真實 h2 GET**，**開憑證驗證**（內嵌測試 CA、驗 host `localhost`）：畫面印 `ALPN: h2`、`RESULT: result=0 status=200`。「現代 HTTP/2 跑在 Classic Mac OS」端到端在真機證明完成。
-    - ⚠️ **踩到並定位的真坑**：cy384 PPC mbedTLS 3.6 fork **同時啟用 TLS 1.2/1.3**，對 Python server（預設偏好 1.3）協商到 **TLS 1.3** 時，握手過、ALPN 也對，但 h2 資料交換途中回 `kCNErrTlsIo (-30082)`（fork 的 1.3 資料階段支援不全）。把測試 server 釘到 **TLS 1.2**（`h2_test_server.py` 預設，`CN_H2_ALLOW_TLS13=1` 可解開）即穩定 `status=200`。診斷靠在 `tls_send`/`tls_recv` 記錄 mbedTLS rc（先前只在握手記錄）。**production 若要對 TLS 1.3-only 的 h2 server，需換用 1.3 支援完整的 mbedTLS PPC 編譯。**
-  - **N-way 多工（C v2 step 4）host 驗證 ✅** —— `cn_h2conn` 改為 stream 陣列（`CN_H2_MAX_STREAMS`），同連線並行多個 GET：`CN_H2ConnStart` 開連線、`CN_H2Request` 各開一個 stream（id 1,3,5…、各自 callback/ud），pump 依 stream id 把 frame 路由到對應請求，全部完成才 `CN_H2Done`。省記憶體的關鍵：HTTP/2 禁止 HEADERS/CONTINUATION 跨 stream 交錯（同時只有一個 header block 在重組），所以重組緩衝 + HPACK + response scratch 維持連線層單份共享，每 stream 只存小狀態。RST_STREAM 改為**只結束該 stream**（其他續跑）、GOAWAY 才整條收。`tests/test_h2conn.c` 的 `test_multiplex`：開 3 個並行請求、server **亂序**回應（body 5→1→3）→ 每個請求各自拿到正確 status+body。`CN_H2Get` 保留為「開連線+單請求」相容包裝。11/11 ctest、fuzz 216 萬次（cov 836）無 crash、PPC 零警告。
-- **模擬器效能警告 ⚠️** —— QEMU 為動態翻譯、非 cycle-accurate；可驗功能正確性，但其速度**不可**當作真實 G3 效能。Phase 0 的「效能可行性」數字最終需實機佐證。
+The skeleton works; the following were verified with the real toolchain (and, where
+noted, on real OS 9 under QEMU). Listed newest-relevant first.
+
+- **CFM shared-library path is open ✅** — the `Retro68/Samples/SharedLibrary`
+  recipe (`add_library SHARED` → `MakePEF` → `Rez -t shlb` with `cfrg` +
+  `-Wl,-bE:exports`) produces a PEF that `file` identifies as a `shared library`.
+  The biggest unknown in §5 is resolved.
+- **Portable code compiles both ways ✅** — `src/` (`cn_url.c` / `cn_http.c`)
+  compiles on the host (gcc, x86) and the PPC target (`powerpc-apple-macos-gcc`)
+  with zero warnings.
+- **A real type-seam gotcha** — Retro68's multiversal interfaces define `OSErr`
+  (16-bit) but **no `OSStatus`** (a Carbon-era type). Added `typedef SInt32
+  OSStatus` in the Mac branch of `cn_types.h`; decision #2 (use OSStatus) stands.
+- **L-A host tests ✅** — CMake + AddressSanitizer + UBSan; `ctest` runs the full
+  suite green.
+- **Fuzzing (QA #1) ✅** — libFuzzer (clang) runs every wire parser for millions of
+  iterations with no crash / OOB / UBSan finding. See `scripts/run-fuzz.sh`.
+
+### Real-machine HTTPS — the core project goal, achieved ✅🎉
+
+- On **real OS 9.2.2 (PowerPC) under QEMU**, `cnhttps` runs the full stack
+  (`CN_OT` (Open Transport) → `CN_Tls` (mbedTLS 3.6) → `CNRequest`), completes a
+  real **TLS handshake**, and fetches an `https://` page: `result=0, status=200`.
+  TLS runs on our own entropy source (`mbedtls_hardware_poll`:
+  Microseconds/TickCount/mouse). `CN_Tls` stacks directly on `CN_OT` (both are
+  `CNTransport`). Two real pitfalls hit and fixed: (1) mbedTLS 3.x TLS 1.3 needs
+  `psa_crypto_init()` first; (2) the test `openssl s_server` needs `-naccept` for
+  multiple connections (the single-connection variant hangs on half-open
+  connections — not our bug).
+  - **Performance number:** one full TLS 1.2 handshake (ECDHE-RSA-AES256-GCM,
+    RSA-2048) + fetch measured at **13 ticks ≈ 0.21 s**. ⚠️ This is **QEMU
+    (mac99/G4) speed**, not real G3/G4 — QEMU on a modern host runs PPC far faster
+    than period hardware; real machines will be several to tens of times slower.
+    What's confirmed is "the code path is efficient, the handshake is not
+    pathologically slow"; real-hardware numbers still need real hardware.
+
+### Certificate verification ✅
+
+- When a CA bundle is passed, `cn_tls.c` sets `VERIFY_REQUIRED` and verifies the
+  **chain + hostname**. Host tests (`scripts/test-tls-verify.sh`) 3/3: CA-signed +
+  matching host → accept, unknown CA → reject, hostname mismatch → reject. On real
+  hardware (`cnhttps -DCN_VERIFY=ON`, embedding the test CA via
+  `scripts/gen-test-pki.sh`) it verifies the CA-signed server and gets `status=200`.
+  Fail-closed is proven on the host (same `cn_tls.c`).
+- **Validity-date checking ✅** — rebuilt the PPC mbedTLS with `MBEDTLS_HAVE_TIME`
+  and wired the Mac Time Manager to mbedTLS via a compile-time macro
+  (`target/cn_mac_time.c`: `GetDateTime` → Unix epoch, portable `gmtime_r`,
+  `TickCount` → ms). Real-machine: a valid cert passes within its window (clock
+  reads ~2026); a 2021-expired cert is rejected (`-0x2700`
+  X509_CERT_VERIFY_FAILED).
+- **Real CA bundle ✅ (production hardening)** — `scripts/gen-ca-bundle.sh` turns
+  the Mozilla/curl roots (system `ca-certificates.crt` or a downloaded
+  `cacert.pem`, ~147 roots ~221 KB) into `target/ca_bundle.h` (embedded C string,
+  gitignored); the target app verifies real public servers with
+  `-DCN_CA_BUNDLE=ON`. Host proof (`scripts/test-tls-real.sh`): the same
+  `cn_tls.c` verifies **real example.com** against the 147-root bundle (chain +
+  hostname) → `status 200`; hostname mismatch → reject (fail-closed). The bundle
+  compiles on the PPC compiler (221152-byte literal). ⚠️ RAM: the full bundle
+  parses to a few hundred KB of live X.509; trim `cacert.pem` to the roots you need
+  and regenerate on tight machines.
+
+### TLS 1.3 ✅ (production hardening)
+
+- Root cause of the earlier -30082 found: mbedTLS 3.x returns the TLS 1.3
+  **post-handshake NewSessionTicket** as the non-fatal code
+  `MBEDTLS_ERR_SSL_RECEIVED_NEW_SESSION_TICKET (-0x7B00)` from `ssl_read`/
+  `ssl_write`, and our `tls_recv`/`tls_send` treated it as fatal `kCNErrTlsIo`.
+  Fix: treat that code as would-block (retry). Reproduced and fixed **on the host
+  with vanilla mbedTLS 3.6.0 (same version as the PPC fork)**: `scripts/test-tls13.sh`
+  proves **h2-over-1.3 ✅, HTTP/1.1-over-1.3 ✅, 1.2 fallback ✅**; against **real
+  example.com** (`TLSv1.3, AES-256-GCM`) + the real 147-root bundle → `status 200`.
+  **TLS 1.3 is now the default**, with `CN_TLS_FORCE_TLS12` as the fallback escape
+  hatch. **Real-machine end-to-end confirmed ✅🎉**: on QEMU OS 9, `cnh2` (1.3
+  enabled) against a host h2 server — server log shows `version=TLSv1.3 ALPN=h2 /
+  GET / -> 200`, `cnh2` console `result=0 status=200` (the same scenario was
+  -30082 before the fix).
+  - ⚠️ **Build lesson:** `cmake --build --target cnh2` only builds the XCOFF; it
+    does **not** run the Rez post-step that produces the MacBinary `.bin`. Use a
+    full `cmake --build build-target` to refresh the `.bin` (otherwise the ISO
+    carries a stale binary — exactly why the real machine still showed -30082
+    earlier).
+  - This NewSessionTicket fix is what resolved the earlier step-3 h2 `-30082`
+    (originally misattributed to the fork's TLS 1.3 data phase). With the fix,
+    h2-over-1.3 works: the test server (`h2_test_server.py`) allows 1.3 by default
+    and `CN_H2_FORCE_TLS12=1` pins 1.2 for the fallback path.
+
+### Entropy injection hook ✅ (production hardening)
+
+- `CN_TlsAddEntropy(tls, data, len)`: the app feeds session-collected unpredictable
+  bits (mouse/keyboard inter-event gaps, Microseconds/TickCount deltas,
+  uninitialized stack) before the handshake; it goes into the DRBG via
+  `mbedtls_ctr_drbg_reseed` as **additional input** (only adds, never removes). Host
+  verified (`h2_smoke` still handshakes after injection); `cn_collect_jitter()`
+  (`target/cn_mac_time.c`, called from `h2_get.c`/`https_get.c`) demonstrates
+  real-machine collection + injection. ⚠️ This is a
+  **mixing hook, not a guarantee**: it improves seed quality, but on a machine with
+  no real hardware entropy it cannot by itself bring the RNG to cryptographic
+  strength — `mbedtls_hardware_poll` (cy384 flags it mediocre) is still the floor.
+  Production should collect plenty of user-input entropy.
+
+### Plain HTTP / on-target / earlier milestones
+
+- **L-D real-machine networking ✅🎉** — on **real OS 9.2.2 (PowerPC) under QEMU**,
+  `cnhttp` runs the full stack (`CN_OT` → `CNRequest` async state machine → HTTP
+  parser), GETs from a host HTTP server, and gets `status=200, body=74 bytes`; the
+  server log confirms the request. The OT transport (`cn_ot.c`) is non-blocking
+  (`kOTNoDataErr` → would-block), fitting the cooperative pump. Prereqs: Retro68
+  rebuilt with Apple UI 3.4 (OT headers + matching stubs), OS 9 guest TCP/IP set to
+  DHCP.
+- **L-C on-target verified ✅** — the on-target test runner (`target/`) compiled to
+  a PowerPC OS 9 app runs **15 checks, 0 failed** on real OS 9.2.2: URL/HTTP
+  parser, WebSocket 16/64-bit length fields, SHA-1, Base64, WebSocket accept, async
+  request state machine — proving behaviour matches the host on **big-endian
+  PowerPC** with zero endianness bugs. Flow: `scripts/build-target-iso.sh`
+  (Retro68 → MacBinary → ISO9660) + `CN_TOOLS_DISK=... scripts/run-emulator.sh run`
+  (OS 9 decodes the MacBinary with StuffIt Expander, then runs it).
+- **Host HTTPS first light ✅** — the full stack (`CNRequest` → `CN_Tls` (mbedTLS
+  2.28 LTS) → host TCP) completes a real TLS handshake against `openssl s_server`
+  and gets HTTP 200. TLS is enabled with `-DCN_WITH_MBEDTLS=ON -DMBEDTLS_ROOT=...`;
+  mbedTLS's non-blocking BIO (WANT_READ/WRITE) maps directly to `CNTransport`'s
+  would-block semantics.
+- **CFM shared library ✅** — `target/shlb/` builds ClassicNet as a PowerPC CFM
+  shared library (`ClassicNet`, type `shlb` + PEF + `cfrg`, 13 KB). Real OS 9: a
+  separate app (`shlbdemo`) dynamically loads it at launch and calls its exported
+  `CN_ParseURL` / `CN_Sha1` / `CN_Base64Encode` with correct results (SHA1(abc)
+  base64 matches) — the code lives in the library, not the app.
+  - ⚠️ **Retro68 `MakePEF` bug found:** the export hash table slot index uses
+    `key % sz`, but the CFM runtime uses a different reduction; this only triggers
+    with **>9 exports** (multiple hash slots, power>0) — ≤9 exports (power=0, single
+    slot) work. So the `shlb` exports are kept to the core API; a full-API `shlb`
+    needs an upstream MakePEF fix or static linking. The static-link form
+    (cnhttp/cnhttps/cntest) works perfectly on real hardware and is the reliable
+    delivery vehicle.
+
+### HTTP/2 (Phase 2) ✅
+
+- **Core (framing + HPACK), host-verified ✅** — `src/cn_h2.c`: 9-byte frame header
+  parse/serialize, connection preface, SETTINGS build/parse. `src/cn_hpack.c`:
+  HPACK (RFC 7541) decoder (integer/string §5, Huffman §5.2 + Appendix B, 61-entry
+  static table, dynamic table with eviction §2.3/§4), plus a minimal stateless
+  encoder (literal, no Huffman, static-table name index) for sending requests.
+  - **Authoritative vectors ✅** — `tests/test_hpack.c` runs RFC 7541 **Appendix C**
+    vectors: C.3 (cumulative non-Huffman, dynamic table), C.4 (Huffman decode), C.5
+    (table size 256 forced eviction) — all field-for-field. `tests/test_h2.c`
+    covers frame parse/round-trip/SETTINGS. ctest green.
+  - **Fuzz ✅** — libFuzzer + ASan/UBSan: HPACK decoder 1.61M iterations (cov 322),
+    H2 frame 15.55M, no crash / OOB / UB. Huffman and static tables are generated
+    from the authoritative `hpack` Python package (`src/cn_hpack_tables.h`), not
+    hand-copied.
+  - **L-B PPC cross-compile ✅** — `cn_h2.c` / `cn_hpack.c` compile to XCOFF with
+    `powerpc-apple-macos-gcc -std=c90 -Wall -Wextra`, zero warnings.
+- **Connection layer (step 1), host-verified ✅** — `src/cn_h2conn.c`: a single-
+  stream GET over any `CNTransport`, reusing `CNRequest`'s pump/callback model.
+  Sends preface + our SETTINGS (server push off) + HPACK-encoded HEADERS
+  (END_HEADERS|END_STREAM); reads frames, reassembles HEADERS+CONTINUATION →
+  HPACK decode → `onResponse`, DATA → `onData`, replenishes flow control via
+  WINDOW_UPDATE, ACKs SETTINGS/PING, winds down on GOAWAY/RST_STREAM.
+  `tests/test_h2conn.c` uses a mock-transport server (5-byte chunking to force
+  frame reassembly): status 200 + content-type + body, SETTINGS/PING ACK, GOAWAY →
+  error. ctest green; libFuzzer feeds fuzz bytes as server responses into the pump
+  for 3.25M iterations (cov 761), no crash/UB; PPC cross-compile zero warnings.
+- **TLS ALPN + real h2 server interop (step 2, host) ✅** — `cn_tls.c` adds
+  `CN_TlsSetAlpn` (offer `h2` in the handshake) / `CN_TlsGetAlpn` (read the
+  negotiated result), with the protocol-string array stored in `CNTlsTransport` to
+  satisfy mbedTLS lifetime; all under `CN_WITH_MBEDTLS`. `tests/h2_smoke.c` runs the
+  full client stack `CN_H2Conn → CN_Tls(ALPN h2) → TCP`; `scripts/test-h2.sh`
+  stands up a **real Python `h2`-library TLS server** (not our own), **with
+  certificate verification on** (server self-signed cert as trusted CA,
+  host=localhost). Result: ALPN negotiates `h2`, GET over TLS → **status 200 +
+  body**. Interop with a standard-compliant h2 implementation holds.
+- **Real-machine HTTP/2 over HTTPS ✅🎉 (step 3)** — on **real OS 9.2.2 (PowerPC)
+  under QEMU**, `cnh2` (`target/h2_get.c`) runs the full stack `CN_H2Conn →
+  CN_Tls(ALPN h2) → CN_OT` (all `CNTransport`) against the host Python `h2` server:
+  TLS handshake + ALPN `h2` + a real h2 GET, **with certificate verification on**
+  (embedded test CA, host `localhost`). Screen prints `ALPN: h2`, `RESULT:
+  result=0 status=200`. "Modern HTTP/2 on Classic Mac OS" is proven end-to-end on
+  real hardware.
+  - ⚠️ **Pitfall, since resolved:** at step 3, when the connection negotiated
+    **TLS 1.3** against a 1.3-preferring Python server, the handshake and ALPN
+    succeeded but the h2 data exchange returned `kCNErrTlsIo (-30082)` mid-stream.
+    It was first hypothesized to be the fork's incomplete 1.3 data phase and worked
+    around by pinning the server to TLS 1.2. The **real** root cause (found in the
+    "TLS 1.3" entry above) was mishandling the post-handshake NewSessionTicket;
+    once `tls_recv`/`tls_send` treat it as would-block, **h2-over-1.3 works** and is
+    confirmed on real OS 9. The test server now allows 1.3 by default
+    (`CN_H2_FORCE_TLS12=1` pins 1.2). Diagnosed by logging the mbedTLS rc in
+    `tls_send`/`tls_recv` (previously only logged during the handshake).
+- **N-way multiplexing (step 4), host-verified ✅** — `cn_h2conn` becomes a stream
+  array (`CN_H2_MAX_STREAMS`): multiple concurrent GETs on one connection.
+  `CN_H2ConnStart` opens the connection, `CN_H2Request` opens each stream
+  (ids 1,3,5…, each with its own callback/ud); the pump routes frames to the right
+  request by stream id, and `CN_H2Done` fires only when all complete. The
+  memory-saving key: HTTP/2 forbids interleaving HEADERS/CONTINUATION across
+  streams (only one header block reassembling at a time), so the reassembly buffer
+  + HPACK + response scratch stay a single shared copy at the connection layer, and
+  each stream holds only small state. RST_STREAM now ends **only that stream**
+  (others continue); GOAWAY winds down the whole connection. `test_multiplex` in
+  `tests/test_h2conn.c`: 3 concurrent requests, server replies **out of order**
+  (body 5→1→3) → each request gets its correct status+body. `CN_H2Get` remains as
+  the "open connection + single request" convenience wrapper. ctest green; fuzz
+  2.16M iterations (cov 836) no crash; PPC zero warnings.
+
+### Caveat that spans everything
+
+- **Emulator performance ⚠️** — QEMU is a dynamic translator, not cycle-accurate;
+  it verifies functional correctness, but its speed must **not** be read as real G3
+  performance. The Phase 0 "performance feasibility" numbers ultimately need
+  real-hardware confirmation.

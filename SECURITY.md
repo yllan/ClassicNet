@@ -24,9 +24,11 @@ Out of scope: a malicious *local* app, physical access, and side channels.
   `verify: NONE (insecure)`.
 - **No hostname fail-open.** `mbedtls_ssl_set_hostname` failure is fatal — a
   silent skip would verify the chain but not the name. (Audit-driven fix.)
-- **TLS 1.2 pinned on mbedTLS 3.x.** Avoids the PowerPC fork's unreliable TLS
-  1.3 data phase; the client enforces it (`mbedtls_ssl_conf_max_tls_version`),
-  not the server.
+- **TLS 1.3 default, 1.2 fallback.** TLS 1.3 is the default on mbedTLS 3.x and is
+  verified end-to-end (host + real OS 9), for both HTTP/1.1 and HTTP/2; 1.2 also
+  works. `CN_TLS_FORCE_TLS12` pins 1.2 (it is *not* pinned by default). The TLS 1.3
+  post-handshake NewSessionTicket is handled as would-block in `tls_recv`/
+  `tls_send` (mishandling it was the earlier on-target `-30082`).
 - **Length-bounded, NUL-safe parsers.** The URL/HTTP/chunked/WebSocket/HPACK/
   HTTP-2 parsers never index past the supplied length and ignore C-string
   termination. Each is a libFuzzer target run under ASan+UBSan for millions of
@@ -52,8 +54,8 @@ Before shipping, you **must**:
 4. **Harden the RNG seed.** Classic Mac OS has no hardware RNG and the built-in
    `mbedtls_hardware_poll` seed is mediocre. Collect inter-event timing jitter
    (mouse, keyboard, `Microseconds`/`TickCount` deltas) over the session and
-   feed it via `CN_TlsAddEntropy` before the handshake (see `gather_jitter` in
-   `target/h2_get.c`). This improves the seed but is **not** a guarantee — the
+   feed it via `CN_TlsAddEntropy` before the handshake (see `cn_collect_jitter` in
+   `target/cn_mac_time.c`, used by `h2_get.c`/`https_get.c`). This improves the seed but is **not** a guarantee — the
    weak base entropy source remains the limiting factor.
 5. **Keep the CA bundle current.** Roots expire and get distrusted; re-run
    `gen-ca-bundle.sh` on a schedule and ship updates.
@@ -64,11 +66,14 @@ Before shipping, you **must**:
   fork) is self-described as mediocre. `CN_TlsAddEntropy` mitigates but does not
   fix this; a machine with no real entropy source cannot reach a strong seed by
   software alone. Treat freshly-booted, no-user-input handshakes with suspicion.
-- **TLS 1.3 supported.** Both 1.2 and 1.3 work (the post-handshake
-  NewSessionTicket return is handled in `tls_recv`/`tls_send`); 1.3 is the
-  default on mbedTLS 3.x, verified on the host against vanilla 3.6.0 and real
-  public servers, and **confirmed end-to-end on real OS 9** (cnh2 negotiated
-  TLSv1.3 and fetched 200). Define `CN_TLS_FORCE_TLS12` to pin 1.2 as a fallback.
+- **TLS 1.3 supported (default).** Both 1.2 and 1.3 work (the post-handshake
+  NewSessionTicket return is handled as would-block in `tls_recv`/`tls_send`); 1.3
+  is the default on mbedTLS 3.x, verified on the host against vanilla 3.6.0 and
+  real public servers, and **confirmed end-to-end on real OS 9** for both HTTP/1.1
+  and HTTP/2 (cnh2 negotiated TLSv1.3 + ALPN `h2` and fetched 200). Define
+  `CN_TLS_FORCE_TLS12` to pin 1.2 as a fallback. (Historical note: an early h2
+  `-30082` was misattributed to the fork's 1.3 data phase; the real cause was the
+  NewSessionTicket handling, now fixed — see DESIGN.md §11.)
 - **No revocation checking.** No OCSP/CRL; a revoked-but-unexpired cert is
   accepted. Acceptable for many uses, but know it.
 - **Single-threaded assumption.** The HPACK decoder uses static scratch buffers;
