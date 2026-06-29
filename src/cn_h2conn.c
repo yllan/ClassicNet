@@ -366,7 +366,7 @@ static OSStatus open_stream(CNH2Conn *c,
                             const unsigned char *body, UInt32 bodyLen,
                             const CNH2Callbacks *cb, void *ud, UInt32 *streamId)
 {
-    unsigned char hpackBuf[1024];
+    unsigned char hpackBuf[4096];   /* header block (OBS obsToken alone is ~1.2 KB) */
     unsigned char frame[CN_H2_FRAME_HDR_LEN + sizeof(hpackBuf)];
     UInt32 hlen = 0, flen = 0, i, id;
     UInt8  hflags;
