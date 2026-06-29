@@ -22,6 +22,7 @@
 
 #define CN_H2_RECV_CAP    (16384u + 9u)  /* one frame at the default max frame size */
 #define CN_H2_HDRBLK_CAP   16384u
+#define CN_H2_HENC_CAP    4096u        /* outbound HEADERS block scratch (off the stack) */
 #define CN_H2_OUT_CAP   (16384u + 256u)  /* a full max-size DATA frame + preface/SETTINGS/HEADERS */
 #define CN_H2_MAX_STREAMS      8u        /* concurrent requests per connection */
 
@@ -74,6 +75,7 @@ struct CNH2Conn {
 
     CNHpackDec    hpack;
     CNH2Response  resp;                          /* shared decode scratch */
+    unsigned char hdrScratch[CN_H2_HENC_CAP];   /* open_stream HPACK encode buffer (kept off the cooperative stack) */
 
     CNH2Stream    streams[CN_H2_MAX_STREAMS];
     UInt32        nextStreamId;                  /* next odd id to assign (1,3,5,...) */
@@ -116,13 +118,16 @@ OSStatus CN_H2Get(CNH2Conn *c, CNTransport *t,
 
 /*
  * General form: open a request with an explicit method and an optional request
- * body. When bodyLen > 0 a `content-length` header is added and the body is
- * sent as a single DATA frame with END_STREAM (CN_H2Get/CN_H2Request are the
- * body-less GET special case). The body must fit the connection's outbound
- * buffer alongside any still-unflushed preface/SETTINGS/HEADERS -- suitable for
- * the small Thrift control bodies (login, sendMessage, sync), not bulk upload;
- * a larger body returns kCNErrBufferOverflow. `body` is borrowed only for the
- * duration of the call (copied into the out queue before returning).
+ * body. When bodyLen > 0 a `content-length` header is added and the body is sent
+ * as DATA frames, chunked under HTTP/2 flow control and the peer's max frame
+ * size (CN_H2Get/CN_H2Request are the body-less GET special case). There is no
+ * fixed body-size cap; a larger body just spans more CN_H2Pump calls.
+ *
+ * Body lifetime: `body` is BORROWED, not copied. It is streamed from the pump
+ * across multiple CN_H2Pump calls (flow control can defer it), so the caller
+ * MUST keep `body` valid and unchanged until the request completes (onComplete
+ * fires) or the connection is disposed. Passing stack or temporary memory will
+ * corrupt the upload.
  */
 OSStatus CN_H2RequestEx(CNH2Conn *c, const char *method,
                         const char *scheme, const char *authority, const char *path,

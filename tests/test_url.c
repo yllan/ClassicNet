@@ -100,6 +100,15 @@ static void test_rejects_overlong_host(void)
     CN_CHECK(CN_ParseURL(buf, &u) == kCNErrHostTooLong);
 }
 
+static void test_rejects_control_chars(void)
+{
+    CNUrl u;
+    /* CR/LF/control or space smuggled into the host or path is rejected */
+    CN_CHECK(CN_ParseURL("https://ex\rample.com/p", &u) == kCNErrBadURL);
+    CN_CHECK(CN_ParseURL("https://example.com/p\r\nHost: evil", &u) == kCNErrBadURL);
+    CN_CHECK(CN_ParseURL("https://example.com/a b", &u) == kCNErrBadURL);
+}
+
 int main(void)
 {
     CN_RUN(test_https_basic);
@@ -111,5 +120,6 @@ int main(void)
     CN_RUN(test_path_with_query);
     CN_RUN(test_rejects_bad_input);
     CN_RUN(test_rejects_overlong_host);
+    CN_RUN(test_rejects_control_chars);
     return CN_SUMMARY();
 }

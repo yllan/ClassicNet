@@ -112,5 +112,14 @@ OSStatus CN_ParseURL(const char *url, CNUrl *out)
         memcpy(out->path, host_end, path_len + 1);
     }
 
+    /* Reject control characters / spaces smuggled into the host or path: they
+       would let untrusted input inject request lines or headers downstream. */
+    {   const unsigned char *p;
+        for (p = (const unsigned char *)out->host; *p; p++)
+            if (*p <= 0x20 || *p == 0x7F) return kCNErrBadURL;
+        for (p = (const unsigned char *)out->path; *p; p++)
+            if (*p <= 0x20 || *p == 0x7F) return kCNErrBadURL;
+    }
+
     return noErr;
 }

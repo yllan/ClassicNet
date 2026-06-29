@@ -182,20 +182,25 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
     switch (h->type) {
 
     case kCNH2Settings:
+        if (h->streamId != 0) return kCNErrH2BadFrame;          /* RFC 7540 §6.5: stream 0 only */
         if (h->flags & kCNH2FlagAck)
-            return noErr;
+            return (h->length == 0) ? noErr : kCNErrH2BadFrame; /* §6.5: ACK carries no payload */
+        if (h->length % 6 != 0) return kCNErrH2BadFrame;        /* §6.5: payload is a multiple of 6 */
         {   UInt32 i;                                            /* learn the peer's flow-control limits */
             for (i = 0; i + 6 <= h->length; i += 6) {
                 UInt16 sid = (UInt16)(((UInt32)payload[i] << 8) | payload[i + 1]);
                 UInt32 val = ((UInt32)payload[i + 2] << 24) | ((UInt32)payload[i + 3] << 16)
                            | ((UInt32)payload[i + 4] << 8)  |  (UInt32)payload[i + 5];
                 if (sid == 4) {                                  /* SETTINGS_INITIAL_WINDOW_SIZE */
-                    SInt32 delta = (SInt32)val - (SInt32)c->peerInitWindow;
+                    SInt32 delta;
                     UInt32 k;
+                    if (val > 0x7FFFFFFFu) return kCNErrH2BadFrame;  /* §6.5.2: FLOW_CONTROL_ERROR */
+                    delta = (SInt32)val - (SInt32)c->peerInitWindow;
                     c->peerInitWindow = val;
                     for (k = 0; k < CN_H2_MAX_STREAMS; k++)      /* RFC 7540 6.9.2: adjust open streams */
                         if (c->streams[k].id) c->streams[k].sendWindow += delta;
-                } else if (sid == 5 && val >= 16384u) {          /* SETTINGS_MAX_FRAME_SIZE */
+                } else if (sid == 5) {                           /* SETTINGS_MAX_FRAME_SIZE */
+                    if (val < 16384u || val > 16777215u) return kCNErrH2BadFrame;  /* §6.5.2: PROTOCOL_ERROR */
                     c->peerMaxFrame = val;
                 }
             }
@@ -210,10 +215,10 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         }
 
     case kCNH2Ping:
+        if (h->streamId != 0) return kCNErrH2BadFrame;   /* §6.7: stream 0 only */
+        if (h->length != 8)   return kCNErrH2BadFrame;   /* §6.7: length 8, ACK included */
         if (h->flags & kCNH2FlagAck)
             return noErr;
-        if (h->length != 8)
-            return kCNErrH2BadFrame;
         {
             unsigned char pong[CN_H2_FRAME_HDR_LEN + 8];
             UInt32 n = 0;
@@ -245,14 +250,27 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
 
     case kCNH2WindowUpdate: {
         UInt32 inc;
-        if (h->length != 4) return noErr;
+        if (h->length != 4) return kCNErrH2BadFrame;     /* §6.9: FRAME_SIZE_ERROR */
         inc = (((UInt32)payload[0] << 24) | ((UInt32)payload[1] << 16)
              | ((UInt32)payload[2] <<  8) |  (UInt32)payload[3]) & 0x7FFFFFFFu;
-        if (h->streamId == 0) {
+        if (inc == 0) {                                  /* §6.9: a zero increment is an error */
+            if (h->streamId == 0) return kCNErrH2BadFrame;
+            stream_complete(c, find_stream(c, h->streamId), kCNErrH2StreamError);
+            return noErr;
+        }
+        if (h->streamId == 0) {                          /* §6.9.1: window must not exceed 2^31-1 */
+            if (c->connSendWindow > 0 && inc > (UInt32)(0x7FFFFFFF - c->connSendWindow))
+                return kCNErrH2BadFrame;
             c->connSendWindow += (SInt32)inc;            /* credit the connection send window */
         } else {
             CNH2Stream *st = find_stream(c, h->streamId);
-            if (st) st->sendWindow += (SInt32)inc;       /* credit the stream send window */
+            if (st) {
+                if (st->sendWindow > 0 && inc > (UInt32)(0x7FFFFFFF - st->sendWindow)) {
+                    stream_complete(c, st, kCNErrH2StreamError);   /* §6.9.1: stream FLOW_CONTROL_ERROR */
+                    return noErr;
+                }
+                st->sendWindow += (SInt32)inc;           /* credit the stream send window */
+            }
         }
         return noErr;
     }
@@ -366,9 +384,10 @@ static OSStatus open_stream(CNH2Conn *c,
                             const unsigned char *body, UInt32 bodyLen,
                             const CNH2Callbacks *cb, void *ud, UInt32 *streamId)
 {
-    unsigned char hpackBuf[4096];   /* header block (OBS obsToken alone is ~1.2 KB) */
-    unsigned char frame[CN_H2_FRAME_HDR_LEN + sizeof(hpackBuf)];
-    UInt32 hlen = 0, flen = 0, i, id;
+    unsigned char *hpackBuf = c->hdrScratch;   /* connection-owned: keep open_stream off the stack */
+    unsigned char fhdr[CN_H2_FRAME_HDR_LEN]; UInt32 fhlen = 0;
+    CNH2FrameHeader fh;
+    UInt32 hlen = 0, i, id;
     UInt8  hflags;
     OSStatus s;
     CNH2Stream *slot = 0;
@@ -384,24 +403,24 @@ static OSStatus open_stream(CNH2Conn *c,
         return kCNErrH2StreamError;               /* no free stream slot */
 
     s = CN_HpackEncodeField(":method", 7, method, (UInt32)strlen(method),
-                            hpackBuf, sizeof(hpackBuf), &hlen);
+                            hpackBuf, CN_H2_HENC_CAP, &hlen);
     if (s == noErr) s = CN_HpackEncodeField(":scheme", 7, scheme, (UInt32)strlen(scheme),
-                                            hpackBuf, sizeof(hpackBuf), &hlen);
+                                            hpackBuf, CN_H2_HENC_CAP, &hlen);
     if (s == noErr) s = CN_HpackEncodeField(":path", 5, path, (UInt32)strlen(path),
-                                            hpackBuf, sizeof(hpackBuf), &hlen);
+                                            hpackBuf, CN_H2_HENC_CAP, &hlen);
     if (s == noErr) s = CN_HpackEncodeField(":authority", 10, authority,
                                             (UInt32)strlen(authority),
-                                            hpackBuf, sizeof(hpackBuf), &hlen);
+                                            hpackBuf, CN_H2_HENC_CAP, &hlen);
     if (s == noErr && bodyLen > 0) {              /* content-length for the body */
         char clbuf[10];
         UInt32 cllen = u32_to_dec(bodyLen, clbuf);
         s = CN_HpackEncodeField("content-length", 14, clbuf, cllen,
-                                hpackBuf, sizeof(hpackBuf), &hlen);
+                                hpackBuf, CN_H2_HENC_CAP, &hlen);
     }
     for (i = 0; s == noErr && i < headerCount; i++)
         s = CN_HpackEncodeField(headers[i].name, (UInt32)strlen(headers[i].name),
                                 headers[i].value, (UInt32)strlen(headers[i].value),
-                                hpackBuf, sizeof(hpackBuf), &hlen);
+                                hpackBuf, CN_H2_HENC_CAP, &hlen);
     if (s != noErr) return s;
 
     id = c->nextStreamId;
@@ -418,10 +437,12 @@ static OSStatus open_stream(CNH2Conn *c,
     /* END_STREAM on HEADERS only when there is no body; otherwise the DATA
        frame below carries END_STREAM. */
     hflags = (UInt8)(kCNH2FlagEndHeaders | (bodyLen > 0 ? 0 : kCNH2FlagEndStream));
-    s = CN_H2BuildFrame(kCNH2Headers, hflags, id, hpackBuf, hlen,
-                        frame, sizeof(frame), &flen);
+    fh.length = hlen; fh.type = (UInt8)kCNH2Headers; fh.flags = hflags; fh.streamId = id;
+    s = CN_H2WriteFrameHeader(&fh, fhdr, sizeof(fhdr), &fhlen);
     if (s != noErr) return s;
-    s = h2_queue(c, frame, flen);
+    s = h2_queue(c, fhdr, fhlen);
+    if (s != noErr) return s;
+    s = h2_queue(c, hpackBuf, hlen);
     if (s != noErr) return s;
 
 

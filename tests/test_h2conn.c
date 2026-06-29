@@ -381,6 +381,46 @@ static void test_large_post(void)
     }
 }
 
+/* A WINDOW_UPDATE with a zero increment is a stream error (RFC 7540 §6.9). */
+static void test_rejects_zero_window_update(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512];
+    UInt32 n;
+
+    mock_init(&m, 0);
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    n = build_headers(buf, sizeof(buf), false);            /* :status 200, stream stays open */
+    srv_raw(&m, buf, n);
+    CN_H2BuildFrame(kCNH2WindowUpdate, 0, 1,
+                    (const unsigned char *)"\0\0\0\0", 4, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2StreamError);            /* zero increment killed the stream */
+}
+
+/* A SETTINGS payload whose length is not a multiple of 6 is a connection error
+ * (RFC 7540 §6.5) -- previously the trailing bytes were silently ignored. */
+static void test_rejects_bad_settings_length(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512];
+    UInt32 n;
+
+    mock_init(&m, 0);
+    CN_H2BuildFrame(kCNH2Settings, 0, 0,
+                    (const unsigned char *)"\0\0\0\0\0", 5, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2BadFrame);
+}
+
 int main(void)
 {
     CN_RUN(test_basic_get);
@@ -388,5 +428,7 @@ int main(void)
     CN_RUN(test_goaway_fails);
     CN_RUN(test_multiplex);
     CN_RUN(test_large_post);
+    CN_RUN(test_rejects_zero_window_update);
+    CN_RUN(test_rejects_bad_settings_length);
     return CN_SUMMARY();
 }

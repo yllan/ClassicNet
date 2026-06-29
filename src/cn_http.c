@@ -115,6 +115,32 @@ static int cn_wr(char *out, UInt32 cap, UInt32 *len, const char *s)
     return 1;
 }
 
+/* Reject bytes that would let untrusted input break the request line or inject
+   extra headers: any control char or space in a token (method/path/host/header
+   name), a ':' in a header name, or CR/LF in a header value. */
+static int cn_tok_clean(const char *s)
+{
+    const unsigned char *p = (const unsigned char *)s;
+    for (; *p; p++)
+        if (*p <= 0x20 || *p == 0x7F) return 0;
+    return 1;
+}
+static int cn_name_clean(const char *s)
+{
+    const unsigned char *p = (const unsigned char *)s;
+    if (*p == 0) return 0;                     /* empty header name */
+    for (; *p; p++)
+        if (*p <= 0x20 || *p == 0x7F || *p == ':') return 0;
+    return 1;
+}
+static int cn_value_clean(const char *s)
+{
+    const unsigned char *p = (const unsigned char *)s;
+    for (; *p; p++)
+        if (*p == '\r' || *p == '\n') return 0;   /* CR/LF would inject lines */
+    return 1;
+}
+
 OSStatus CN_BuildRequest(const char *method, const char *path, const char *host,
                          const CNHeaderKV *headers, UInt32 headerCount,
                          char *out, UInt32 outCap, UInt32 *outLen)
@@ -128,6 +154,8 @@ OSStatus CN_BuildRequest(const char *method, const char *path, const char *host,
     if (headerCount > 0 && headers == 0)
         return kCNErrBadParam;
 
+    if (!cn_tok_clean(method) || !cn_tok_clean(path) || !cn_tok_clean(host))
+        return kCNErrBadParam;                 /* no control chars / CRLF injection */
     ok &= cn_wr(out, outCap, &len, method);
     ok &= cn_wr(out, outCap, &len, " ");
     ok &= cn_wr(out, outCap, &len, path);
@@ -136,6 +164,8 @@ OSStatus CN_BuildRequest(const char *method, const char *path, const char *host,
     ok &= cn_wr(out, outCap, &len, "\r\n");
     for (i = 0; i < headerCount; i++) {
         if (headers[i].name == 0 || headers[i].value == 0)
+            return kCNErrBadParam;
+        if (!cn_name_clean(headers[i].name) || !cn_value_clean(headers[i].value))
             return kCNErrBadParam;
         ok &= cn_wr(out, outCap, &len, headers[i].name);
         ok &= cn_wr(out, outCap, &len, ": ");
