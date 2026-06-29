@@ -421,6 +421,71 @@ static void test_rejects_bad_settings_length(void)
     CN_CHECK(g_result == kCNErrH2BadFrame);
 }
 
+/* Bad CN_H2Request params must be rejected, not crash: null headers array with a
+ * non-zero count, or a header with a null name/value. */
+static void test_rejects_bad_headers_param(void)
+{
+    MockT m;
+    CNH2Conn c;
+    CNH2Callbacks cb;
+    CNHeaderKV bad;
+    UInt32 id;
+
+    mock_init(&m, 0);
+    cb.onResponse = on_resp; cb.onData = on_data; cb.onComplete = on_done;
+    CN_CHECK(CN_H2ConnStart(&c, &m.base) == noErr);
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/", 0, 1, &cb, 0, &id) == kCNErrBadParam);
+    bad.name = 0; bad.value = "v";
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/", &bad, 1, &cb, 0, &id) == kCNErrBadParam);
+    bad.name = "x"; bad.value = 0;
+    CN_CHECK(CN_H2Request(&c, "https", "h", "/", &bad, 1, &cb, 0, &id) == kCNErrBadParam);
+}
+
+/* If the HEADERS frame can't fit the outbound queue, open_stream must queue
+ * NOTHING (no dangling frame header) and report overflow. */
+static void test_headers_overflow_atomic(void)
+{
+    MockT m;
+    CNH2Conn c;
+    CNH2Callbacks cb;
+    UInt32 id, before;
+
+    mock_init(&m, 0);
+    cb.onResponse = on_resp; cb.onData = on_data; cb.onComplete = on_done;
+    CN_CHECK(CN_H2ConnStart(&c, &m.base) == noErr);
+    c.outLen = CN_H2_OUT_CAP - 4;            /* leave only 4 bytes free */
+    before = c.outLen;
+    CN_CHECK(CN_H2Request(&c, "https", "example.com", "/", 0, 0, &cb, 0, &id)
+             == kCNErrBufferOverflow);
+    CN_CHECK(c.outLen == before);            /* nothing partially queued */
+}
+
+/* A SETTINGS_INITIAL_WINDOW_SIZE delta that pushes an open stream's send window
+ * over 2^31-1 is a connection error (RFC 7540 §6.9.2). */
+static void test_rejects_initial_window_overflow(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512];
+    UInt32 n;
+
+    mock_init(&m, 0);
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    n = build_headers(buf, sizeof(buf), false);            /* stream 1 stays open */
+    srv_raw(&m, buf, n);
+    /* raise stream 1's window to exactly 2^31-1 (65535 + 0x7FFF0000) */
+    CN_H2BuildFrame(kCNH2WindowUpdate, 0, 1,
+                    (const unsigned char *)"\x7f\xff\x00\x00", 4, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+    /* then grow the initial window: delta applied to stream 1 exceeds the max */
+    { CNH2Setting s; s.id = kCNH2SettingInitialWindowSize; s.value = 100000;
+      n = 0; CN_H2BuildSettings(&s, 1, buf, sizeof(buf), &n); srv_raw(&m, buf, n); }
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2BadFrame);
+}
+
 int main(void)
 {
     CN_RUN(test_basic_get);
@@ -430,5 +495,8 @@ int main(void)
     CN_RUN(test_large_post);
     CN_RUN(test_rejects_zero_window_update);
     CN_RUN(test_rejects_bad_settings_length);
+    CN_RUN(test_rejects_bad_headers_param);
+    CN_RUN(test_headers_overflow_atomic);
+    CN_RUN(test_rejects_initial_window_overflow);
     return CN_SUMMARY();
 }

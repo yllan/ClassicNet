@@ -196,9 +196,13 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
                     UInt32 k;
                     if (val > 0x7FFFFFFFu) return kCNErrH2BadFrame;  /* §6.5.2: FLOW_CONTROL_ERROR */
                     delta = (SInt32)val - (SInt32)c->peerInitWindow;
-                    c->peerInitWindow = val;
-                    for (k = 0; k < CN_H2_MAX_STREAMS; k++)      /* RFC 7540 6.9.2: adjust open streams */
+                    for (k = 0; k < CN_H2_MAX_STREAMS; k++)      /* RFC 7540 §6.9.2: a resulting */
+                        if (c->streams[k].id && delta > 0 &&     /* window over 2^31-1 is a */
+                            c->streams[k].sendWindow > (SInt32)0x7FFFFFFF - delta)
+                            return kCNErrH2BadFrame;             /* FLOW_CONTROL_ERROR */
+                    for (k = 0; k < CN_H2_MAX_STREAMS; k++)      /* adjust open streams */
                         if (c->streams[k].id) c->streams[k].sendWindow += delta;
+                    c->peerInitWindow = val;
                 } else if (sid == 5) {                           /* SETTINGS_MAX_FRAME_SIZE */
                     if (val < 16384u || val > 16777215u) return kCNErrH2BadFrame;  /* §6.5.2: PROTOCOL_ERROR */
                     c->peerMaxFrame = val;
@@ -396,6 +400,11 @@ static OSStatus open_stream(CNH2Conn *c,
         return kCNErrBadParam;
     if (bodyLen > 0 && body == 0)
         return kCNErrBadParam;
+    if (headerCount > 0 && headers == 0)
+        return kCNErrBadParam;
+    for (i = 0; i < headerCount; i++)
+        if (headers[i].name == 0 || headers[i].value == 0)
+            return kCNErrBadParam;
 
     for (i = 0; i < CN_H2_MAX_STREAMS; i++)
         if (c->streams[i].id == 0) { slot = &c->streams[i]; break; }
@@ -437,6 +446,12 @@ static OSStatus open_stream(CNH2Conn *c,
     /* END_STREAM on HEADERS only when there is no body; otherwise the DATA
        frame below carries END_STREAM. */
     hflags = (UInt8)(kCNH2FlagEndHeaders | (bodyLen > 0 ? 0 : kCNH2FlagEndStream));
+    /* The HEADERS frame must be queued whole: queuing the 9-byte header and then
+       failing to queue the block would leave a dangling header in the out queue and
+       corrupt the stream. Preflight both pieces against the (compacted) queue so
+       neither is queued on overflow. */
+    if (CN_H2_FRAME_HDR_LEN + hlen > CN_H2_OUT_CAP - (c->outLen - c->outOff))
+        return kCNErrBufferOverflow;
     fh.length = hlen; fh.type = (UInt8)kCNH2Headers; fh.flags = hflags; fh.streamId = id;
     s = CN_H2WriteFrameHeader(&fh, fhdr, sizeof(fhdr), &fhlen);
     if (s != noErr) return s;
