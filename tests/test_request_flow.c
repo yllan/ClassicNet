@@ -199,11 +199,97 @@ static void test_peer_closed_early(void)
     CN_CHECK(cap.result == kCNErrConnClosed);
 }
 
+/* Transfer-Encoding: chunked must win over Content-Length regardless of header
+   order (here TE comes first, a later CL must NOT switch to length framing). */
+static void test_chunked_wins_over_content_length(void)
+{
+    const char resp[] =
+        "HTTP/1.1 200 OK\r\n"
+        "Transfer-Encoding: chunked\r\n"
+        "Content-Length: 999\r\n"
+        "\r\n"
+        "5\r\nhello\r\n0\r\n\r\n";
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+    CN_CHECK(cap.completed == 1 && cap.result == noErr && cap.status == 200);
+    CN_CHECK(cap.bodyLen == 5 && memcmp(cap.body, "hello", 5) == 0);
+}
+
+/* Two conflicting Content-Length values are a framing error. */
+static void test_conflicting_content_length(void)
+{
+    const char resp[] =
+        "HTTP/1.1 200 OK\r\nContent-Length: 5\r\nContent-Length: 6\r\n\r\nhello";
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+    CN_CHECK(cap.completed == 1 && cap.result == kCNErrBadHeader);
+}
+
+/* "notchunked" must NOT be treated as chunked (no substring false positive); it
+   is an unknown coding, so the body is connection-delimited. */
+static void test_transfer_encoding_not_chunked(void)
+{
+    const char resp[] =
+        "HTTP/1.1 200 OK\r\nTransfer-Encoding: notchunked\r\n\r\nraw";
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+    CN_CHECK(cap.completed == 1 && cap.result == noErr && cap.status == 200);
+    CN_CHECK(cap.bodyLen == 3 && memcmp(cap.body, "raw", 3) == 0);
+}
+
+/* A HEAD response has no body even with Content-Length: complete after headers
+   instead of hanging waiting for a body that never comes. */
+static void test_head_no_body(void)
+{
+    const char resp[] = "HTTP/1.1 200 OK\r\nContent-Length: 100\r\n\r\n";
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "HEAD", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+    CN_CHECK(cap.completed == 1 && cap.result == noErr && cap.status == 200);
+    CN_CHECK(cap.bodyLen == 0);
+}
+
+/* A 100 Continue interim response is skipped; the final response is delivered. */
+static void test_100_continue_skipped(void)
+{
+    const char resp[] =
+        "HTTP/1.1 100 Continue\r\n\r\n"
+        "HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\r\nhi";
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+    fake_init(&f, resp, (UInt32)(sizeof(resp) - 1), 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+    CN_CHECK(cap.completed == 1 && cap.result == noErr && cap.status == 200);
+    CN_CHECK(cap.bodyLen == 2 && memcmp(cap.body, "hi", 2) == 0);
+}
+
 int main(void)
 {
     CN_RUN(test_content_length_flow);
     CN_RUN(test_chunked_flow);
     CN_RUN(test_204_no_body);
     CN_RUN(test_peer_closed_early);
+    CN_RUN(test_chunked_wins_over_content_length);
+    CN_RUN(test_conflicting_content_length);
+    CN_RUN(test_transfer_encoding_not_chunked);
+    CN_RUN(test_head_no_body);
+    CN_RUN(test_100_continue_skipped);
     return CN_SUMMARY();
 }

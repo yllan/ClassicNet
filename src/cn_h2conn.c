@@ -161,6 +161,12 @@ static OSStatus deliver_headers(CNH2Conn *c)
     if (s != noErr) return s;                     /* HPACK error == connection error */
     st = find_stream(c, c->hdrStream);
     if (st) {
+        if (!st->gotResponse && c->resp.status == 0) {
+            /* response HEADERS without a valid :status is malformed (RFC 7540 8.1.2.4);
+               fail the stream rather than completing it as success with status 0. */
+            stream_complete(c, st, kCNErrH2BadFrame);
+            return noErr;                             /* stream error; connection continues */
+        }
         st->gotResponse = true;
         if (st->cb.onResponse) st->cb.onResponse(c, &c->resp, st->ud);
     }
@@ -231,6 +237,7 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         }
 
     case kCNH2Goaway:
+        if (h->streamId != 0) return kCNErrH2BadFrame;   /* §6.8: GOAWAY is on stream 0 */
 #ifdef CN_HOST
         if (cn_h2_trace_on() && h->length >= 8)
             fprintf(stderr, "[h2 recv] GOAWAY lastStream=%lu errorCode=%lu\n",
@@ -242,6 +249,8 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         return kCNErrH2StreamError;               /* terminal for the whole connection */
 
     case kCNH2RstStream:
+        if (h->streamId == 0) return kCNErrH2BadFrame;   /* §6.4: RST_STREAM PROTOCOL_ERROR */
+        if (h->length != 4)   return kCNErrH2BadFrame;   /* §6.4: FRAME_SIZE_ERROR */
 #ifdef CN_HOST
         if (cn_h2_trace_on() && h->length >= 4)
             fprintf(stderr, "[h2 recv] RST_STREAM stream=%lu errorCode=%lu\n",
@@ -279,6 +288,8 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         return noErr;
     }
     case kCNH2Priority:
+        if (h->streamId == 0) return kCNErrH2BadFrame;   /* §6.3: PROTOCOL_ERROR */
+        if (h->length != 5)   return kCNErrH2BadFrame;   /* §6.3: FRAME_SIZE_ERROR */
         return noErr;
 
     case kCNH2Headers:
@@ -289,6 +300,7 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
 
         if (h->type == kCNH2Headers) {
             UInt32 padLen = 0;
+            if (h->streamId == 0) return kCNErrH2BadFrame;   /* §6.2: HEADERS PROTOCOL_ERROR */
             if (h->flags & kCNH2FlagPadded) {
                 if (fragLen < 1) return kCNErrH2BadFrame;
                 padLen = payload[0];
@@ -332,6 +344,7 @@ static OSStatus process_frame(CNH2Conn *c, const CNH2FrameHeader *h,
         UInt32 dataLen = h->length;
         UInt32 padLen = 0;
         CNH2Stream *st = find_stream(c, h->streamId);
+        if (h->streamId == 0) return kCNErrH2BadFrame;   /* §6.1: DATA needs a stream (PROTOCOL_ERROR) */
 
         if (h->flags & kCNH2FlagPadded) {
             if (dataLen < 1) return kCNErrH2BadFrame;

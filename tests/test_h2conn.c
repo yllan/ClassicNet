@@ -486,6 +486,65 @@ static void test_rejects_initial_window_overflow(void)
     CN_CHECK(g_result == kCNErrH2BadFrame);
 }
 
+/* DATA on stream 0 is a connection error (RFC 7540 §6.1). */
+static void test_rejects_data_on_stream0(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512];
+    UInt32 n;
+
+    mock_init(&m, 0);
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    n = build_headers(buf, sizeof(buf), false); srv_raw(&m, buf, n);
+    CN_H2BuildFrame(kCNH2Data, 0, 0, (const unsigned char *)"x", 1, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2BadFrame);
+}
+
+/* A PRIORITY frame whose length is not 5 is a frame-size error (RFC 7540 §6.3). */
+static void test_rejects_bad_priority_length(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512];
+    UInt32 n;
+
+    mock_init(&m, 0);
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    CN_H2BuildFrame(kCNH2Priority, 0, 1, (const unsigned char *)"\0\0\0", 3, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2BadFrame);
+}
+
+/* Response HEADERS without a :status pseudo-header is malformed: the stream must
+   fail, not complete as success with status 0 (RFC 7540 §8.1.2.4). */
+static void test_rejects_missing_status(void)
+{
+    MockT m;
+    CNH2Conn c;
+    unsigned char buf[512], hp[64];
+    UInt32 n, hl = 0;
+
+    mock_init(&m, 0);
+    n = 0; CN_H2BuildSettings(0, 0, buf, sizeof(buf), &n); srv_raw(&m, buf, n);
+    CN_HpackEncodeField("x-foo", 5, "bar", 3, hp, sizeof(hp), &hl);   /* no :status */
+    CN_H2BuildFrame(kCNH2Headers, kCNH2FlagEndHeaders | kCNH2FlagEndStream, 1,
+                    hp, hl, buf, sizeof(buf), &n);
+    srv_raw(&m, buf, n);
+
+    run(&m, &c);
+    CN_CHECK(g_completed == 1);
+    CN_CHECK(g_result == kCNErrH2BadFrame);
+    CN_CHECK(g_status == 0);            /* never delivered a bogus status-0 response */
+}
+
 int main(void)
 {
     CN_RUN(test_basic_get);
@@ -498,5 +557,8 @@ int main(void)
     CN_RUN(test_rejects_bad_headers_param);
     CN_RUN(test_headers_overflow_atomic);
     CN_RUN(test_rejects_initial_window_overflow);
+    CN_RUN(test_rejects_data_on_stream0);
+    CN_RUN(test_rejects_bad_priority_length);
+    CN_RUN(test_rejects_missing_status);
     return CN_SUMMARY();
 }

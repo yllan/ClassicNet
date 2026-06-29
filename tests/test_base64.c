@@ -25,6 +25,17 @@ static void test_encode_overflow(void)
     CN_CHECK(CN_Base64Encode("f", 1, out, sizeof(out), &ol) == kCNErrBase64Overflow);
 }
 
+/* A length large enough to overflow the ((len+2)/3)*4 size arithmetic must be
+   rejected up front, not wrap to a small capacity check and then over-write. */
+static void test_encode_huge_len(void)
+{
+    char small[4] = "abc";
+    char out[16];
+    UInt32 ol = 0;
+    CN_CHECK(CN_Base64Encode(small, 0xFFFFFFFFu, out, sizeof(out), &ol) == kCNErrBase64Overflow);
+    CN_CHECK(CN_Base64Encode(small, 0xC0000000u, out, sizeof(out), &ol) == kCNErrBase64Overflow);
+}
+
 static void test_decode_roundtrip(void)
 {
     const char *msg = "Hello, ClassicNet!";
@@ -51,6 +62,7 @@ int main(void)
 {
     CN_RUN(test_encode_vectors);
     CN_RUN(test_encode_overflow);
+    CN_RUN(test_encode_huge_len);
     CN_RUN(test_decode_roundtrip);
     CN_RUN(test_decode_rejects);
     return CN_SUMMARY();

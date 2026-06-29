@@ -8,11 +8,13 @@ OSStatus CN_Base64Encode(const void *data, UInt32 len,
                          char *out, UInt32 outCap, UInt32 *outLen)
 {
     const UInt8 *p = (const UInt8 *)data;
-    UInt32 need = ((len + 2) / 3) * 4;
-    UInt32 i = 0, o = 0;
+    UInt32 need, i = 0, o = 0;
 
     if (data == 0 || out == 0)
         return kCNErrBadParam;
+    if (len > 0xBFFFFFFDu)                 /* ((len+2)/3)*4 (+1) would overflow UInt32 */
+        return kCNErrBase64Overflow;
+    need = ((len + 2) / 3) * 4;
     if (outCap < need + 1)
         return kCNErrBase64Overflow;
 

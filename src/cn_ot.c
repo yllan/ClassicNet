@@ -25,8 +25,10 @@ void CN_OTShutdown(void)
     if (--g_ot_refs == 0) CloseOpenTransport();
 }
 
-/* Build "host:port" without stdio (OTInitDNSAddress wants this form). */
-static void make_hostport(char *dst, UInt32 cap, const char *host, UInt16 port)
+/* Build "host:port" without stdio (OTInitDNSAddress wants this form). Returns 0
+   if it does not fit `cap` -- never silently truncates the host (which would
+   connect to the wrong server). */
+static int make_hostport(char *dst, UInt32 cap, const char *host, UInt16 port)
 {
     UInt32 i = 0;
     const char *p = host;
@@ -34,12 +36,14 @@ static void make_hostport(char *dst, UInt32 cap, const char *host, UInt16 port)
     int n = 0;
     UInt16 v = port;
 
-    while (*p != '\0' && i + 7 < cap) dst[i++] = *p++;
-    if (i + 1 < cap) dst[i++] = ':';
+    while (*p != '\0') { if (i + 1 >= cap) return 0; dst[i++] = *p++; }
+    if (i + 1 >= cap) return 0;
+    dst[i++] = ':';
     if (v == 0) tmp[n++] = '0';
     while (v != 0 && n < (int)sizeof(tmp)) { tmp[n++] = (char)('0' + (v % 10)); v = (UInt16)(v / 10); }
-    while (n > 0 && i + 1 < cap) dst[i++] = tmp[--n];
+    while (n > 0) { if (i + 1 >= cap) return 0; dst[i++] = tmp[--n]; }
     dst[i] = '\0';
+    return 1;
 }
 
 static OSStatus ot_poll(CNTransport *bt)
@@ -142,7 +146,10 @@ OSStatus CN_OTCreate(CNOTTransport *t, const char *host, UInt16 port,
         return kCNErrNetIo;
     }
 
-    make_hostport(t->hostport, (UInt32)sizeof(t->hostport), host, port);
+    if (!make_hostport(t->hostport, (UInt32)sizeof(t->hostport), host, port)) {
+        OTUnbind(t->ep); OTCloseProvider(t->ep);
+        return kCNErrHostTooLong;            /* host + ":port" would not fit -- do not truncate */
+    }
     t->state = OT_ST_CONNECT;
     t->base.poll  = ot_poll;
     t->base.send  = ot_send;

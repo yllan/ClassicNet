@@ -30,6 +30,7 @@ struct CNRequest {
     UInt32             bodyOff;           /* offset of the first body byte in buf */
     CNHttpResponse     resp;
     int                bodyMode;
+    int                isHead;            /* response to HEAD has no body, even with Content-Length */
     UInt32             contentRemaining;  /* for Content-Length bodies */
     CNChunked          chunkDec;          /* streaming decoder for chunked bodies */
     CNRequestCallbacks cb;
