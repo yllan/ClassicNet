@@ -115,9 +115,11 @@ Read these before trusting ClassicNet with anything real — and see
 ClassicNet is **Apache-2.0** (see [LICENSE](LICENSE) and [NOTICE](NOTICE)). The
 NOTICE file is the authoritative attribution list; in short:
 
-- **Mbed TLS** (Apache-2.0) — TLS engine. The PowerPC target links a classic-Mac
-  fork by **cy384** (TLS-client config + `mbedtls_hardware_poll` entropy). Fetched
-  at build time, not redistributed here; its own license applies.
+- **[Mbed TLS](https://github.com/Mbed-TLS/mbedtls)** (Apache-2.0) — TLS engine.
+  The PowerPC target links a classic-Mac fork by **cy384**
+  ([opentransport-mbedtls](https://github.com/cy384/opentransport-mbedtls),
+  TLS-client config + `mbedtls_hardware_poll` entropy). Fetched at build time,
+  not redistributed here; its own license applies.
 - **Retro68** — cross-compiler toolchain (build dependency only).
 - **HPACK static table** (`src/cn_hpack_tables.h`) is derived from **RFC 7541,
   Appendix A**; the Huffman/static tables are generated from the authoritative
