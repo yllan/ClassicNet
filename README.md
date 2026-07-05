@@ -42,7 +42,7 @@ host tests (no special setup):
 cmake -S . -B build          # AddressSanitizer + UBSan on by default
 cmake --build build
 ctest --test-dir build --output-on-failure
-./scripts/run-fuzz.sh http 30   # url | http | ws | chunked | base64 | hpack | h2
+./scripts/run-fuzz.sh http 30   # url | http | ws | chunked | base64 | hpack | h2 | h2conn
 ```
 
 The on-target build needs the Retro68 toolchain and a PowerPC mbedTLS; see

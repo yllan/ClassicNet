@@ -4,7 +4,7 @@ All notable changes to ClassicNet are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); the project predates formal
 version tags, so this first entry captures the current, verified state.
 
-## [0.1.0] — 2026-06-28
+## [0.1.0] — 2026-07-05
 
 First public cut. The full stack is verified end-to-end on real Mac OS 9.2.2
 (PowerPC, under QEMU). The `0.x` version reflects the known caveats below, not
@@ -38,6 +38,25 @@ immaturity of the code paths.
   run (big-endian, zero endianness bugs).
 - Host: full unit suite green under ASan+UBSan; parsers fuzzed for millions of
   iterations with no crash/OOB/UB; HPACK against RFC 7541 Appendix C vectors.
+
+### Hardened (pre-release review rounds)
+
+Adversarial reviews of the wire-facing code, each fix with a host regression
+test (suite stays 11/11 green; http/h2conn fuzzers re-run clean):
+
+- HTTP/1: request-line/header injection rejected (control/CRLF bytes in method,
+  path, host, header names/values); framing per RFC 7230 §3.3.3 — chunked wins
+  over Content-Length, conflicting/duplicate framing rejected, `HEAD` completes
+  after headers, interim 1xx responses skipped.
+- HTTP/2: control-frame validation per RFC 7540 §6 (SETTINGS/PING/WINDOW_UPDATE/
+  GOAWAY/RST_STREAM/PRIORITY length + stream-id rules); response HEADERS without
+  `:status` fail the stream; SETTINGS_INITIAL_WINDOW_SIZE overflow is a
+  connection error; HEADERS queued atomically; request-header parameters
+  validated; HPACK encode buffer enlarged to 4 KB.
+- Misc: Base64 length-overflow guard; over-long Open Transport hostnames fail
+  (`kCNErrHostTooLong`) instead of truncating; failed `CN_TlsCreate` frees all
+  partially-initialized mbedTLS contexts; HPACK/frame scratch moved off the
+  cooperative stack.
 
 ### Security / known limitations
 

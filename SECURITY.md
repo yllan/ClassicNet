@@ -33,11 +33,31 @@ Out of scope: a malicious *local* app, physical access, and side channels.
   HTTP-2 parsers never index past the supplied length and ignore C-string
   termination. Each is a libFuzzer target run under ASan+UBSan for millions of
   iterations with zero crashes/OOB/UB (`scripts/run-fuzz.sh`).
-- **Independent code audit.** `cn_tls.c`, `cn_hpack.c`, `cn_h2conn.c`,
-  `cn_request.c`, `cn_http.c` were reviewed for fail-open TLS, memory safety on
-  attacker input, and HTTP/2 padding/length arithmetic — no findings. Integer-
-  overflow guards (HPACK varint, chunk size, Content-Length) were checked
-  arithmetically, not just left to the fuzz corpus.
+- **Adversarial code review, multiple rounds.** The wire-facing code (`cn_tls.c`,
+  `cn_hpack.c`, `cn_h2conn.c`, `cn_request.c`, `cn_http.c`, `cn_url.c`,
+  `cn_base64.c`, `cn_ot.c`) went through repeated reviews for fail-open TLS,
+  memory safety on attacker input, and protocol arithmetic. Findings were fixed
+  and regression-tested, notably:
+  - HTTP/1 request-line/header **injection rejected** — control chars/CRLF are
+    refused in method, path, host, header names, and header values
+    (`cn_http.c`, `cn_url.c`).
+  - HTTP/1 **framing per RFC 7230 §3.3.3** — `Transfer-Encoding: chunked` wins
+    over `Content-Length` regardless of header order, conflicting or duplicate
+    framing is rejected, `HEAD` completes after headers, interim 1xx responses
+    are skipped (`cn_request.c`).
+  - HTTP/2 **control-frame validation per RFC 7540 §6** — SETTINGS / PING /
+    WINDOW_UPDATE / GOAWAY / RST_STREAM / PRIORITY length and stream-id rules,
+    a response without `:status` fails the stream, and a
+    SETTINGS_INITIAL_WINDOW_SIZE delta that would overflow a stream window is a
+    connection error; HEADERS are queued atomically (no dangling half-frame on
+    output-queue overflow) (`cn_h2conn.c`).
+  - **Misc bounds** — Base64 encode rejects lengths whose output size would
+    overflow; an Open Transport hostname too long for the `host:port` buffer
+    fails with `kCNErrHostTooLong` instead of silently truncating (and possibly
+    connecting to the wrong server); a failed `CN_TlsCreate` frees every
+    partially-initialized mbedTLS context.
+  - Integer-overflow guards (HPACK varint, chunk size, Content-Length) were
+    checked arithmetically, not just left to the fuzz corpus.
 
 ## Production checklist
 

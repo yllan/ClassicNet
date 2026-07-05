@@ -29,7 +29,7 @@ pass() { echo "PASS  $1"; }
 fail() { echo "FAIL  $1"; FAILED=1; }
 
 # 1) h2 over TLS 1.3 (Python h2 server, default = 1.3)
-CN_H2_ALLOW_TLS13=1 PYTHONPATH="$PYH2" python3 "$ROOT/scripts/h2_test_server.py" \
+PYTHONPATH="$PYH2" python3 "$ROOT/scripts/h2_test_server.py" \
     8481 "$PKI/srv.pem" "$PKI/srv-key.pem" >/tmp/t13_h2.log 2>&1 &
 S=$!; sleep 1.2
 if "$BUILD/tests/h2_smoke" 127.0.0.1 8481 "$PKI/ca.pem" localhost 2>&1 | grep -q "status 200"; then

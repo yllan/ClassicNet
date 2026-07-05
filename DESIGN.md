@@ -225,6 +225,18 @@ void     CN_WSClose(CNWebSocketRef ws, UInt16 code, const char *reason);
 The skeleton works; the following were verified with the real toolchain (and, where
 noted, on real OS 9 under QEMU). Listed newest-relevant first.
 
+- **Adversarial review hardening ✅ (newest)** — repeated review rounds over the
+  wire-facing code, every fix regression-tested on the host (suite stays green;
+  http/h2conn fuzzers re-run clean; PPC C90 cross-compile stays warning-free):
+  HTTP/1 request-line/header injection rejected (control/CRLF in method, path,
+  host, header names/values — `cn_http.c`/`cn_url.c`); HTTP/1 framing per
+  RFC 7230 §3.3.3 (chunked beats Content-Length, conflicts rejected, `HEAD` +
+  interim 1xx handled — `cn_request.c`); HTTP/2 control-frame validation per
+  RFC 7540 §6, `:status` required, SETTINGS_INITIAL_WINDOW_SIZE overflow is a
+  connection error, HEADERS queued atomically, 4 KB HPACK encode buffer
+  (`cn_h2conn.c`); Base64 length-overflow guard; over-long OT hostnames error
+  (`kCNErrHostTooLong`) instead of truncating; failed `CN_TlsCreate` frees all
+  partial mbedTLS state.
 - **CFM shared-library path is open ✅** — the `Retro68/Samples/SharedLibrary`
   recipe (`add_library SHARED` → `MakePEF` → `Rez -t shlb` with `cfrg` +
   `-Wl,-bE:exports`) produces a PEF that `file` identifies as a `shared library`.
