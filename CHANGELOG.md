@@ -4,6 +4,29 @@ All notable changes to ClassicNet are documented here. Format loosely follows
 [Keep a Changelog](https://keepachangelog.com/); the project predates formal
 version tags, so this first entry captures the current, verified state.
 
+## [Unreleased]
+
+### Changed
+
+- **HPACK decode buffers** (`cn_hpack.h`): `CN_HPACK_STR_MAX` 4 KB -> 16 KB.
+  A single response header larger than the scratch aborted the whole HTTP/2
+  response with `kCNErrHpackOverflow`; real sites (Wikipedia article pages)
+  ship multi-KB `Content-Security-Policy`/`Set-Cookie` headers. The decoder
+  now holds them; the collector still drops values beyond `CN_HTTP_MAX_VALUE`
+  (same policy as the HTTP/1.x parser). Dynamic-table entries larger than the
+  4 KB arena remain un-indexed per RFC 7541.
+
+- **HTTP/1.x header parsing** (`cn_http.c`): ordinary header fields that cannot
+  be stored — more than `CN_HTTP_MAX_HEADERS`, or a name/value exceeding
+  `CN_HTTP_MAX_NAME`/`CN_HTTP_MAX_VALUE` — are now **dropped** instead of
+  failing the whole response with `kCNErrTooManyHeaders`/`kCNErrHeaderTooLong`.
+  Real web servers routinely send multi-KB `Content-Security-Policy` values,
+  which made whole pages unreachable for CyberCat. `Content-Length` and
+  `Transfer-Encoding` are preserved preferentially because `cn_request.c` needs
+  them for safe body framing; an oversized framing header still fails.
+  (`tests/test_http.c` and `tests/test_request_flow.c` updated; the error codes
+  remain defined for source compatibility.)
+
 ## [0.1.0] — 2026-07-05
 
 First public cut. The full stack is verified end-to-end on real Mac OS 9.2.2

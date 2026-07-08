@@ -7,6 +7,15 @@
 /* Parse a C string literal as a buffer of exactly its byte length (no NUL). */
 #define PARSE_LIT(lit, out) CN_ParseHttpResponse((lit), (UInt32)(sizeof(lit) - 1), (out))
 
+static int has_header(const CNHttpResponse *r, const char *name)
+{
+    UInt32 i;
+    for (i = 0; i < r->headerCount; i++)
+        if (strcmp(r->headers[i].name, name) == 0)
+            return 1;
+    return 0;
+}
+
 static void test_basic_200(void)
 {
     CNHttpResponse r;
@@ -87,8 +96,10 @@ static void test_malformed_rejected(void)
 
 static void test_too_many_headers(void)
 {
-    /* Build status line + (MAX+1) one-byte headers + blank line. */
-    char buf[2048];
+    /* Surplus and oversized fields are DROPPED, not errors: real sites ship
+     * dozens of headers and multi-KB CSP values; failing the response over
+     * an unstorable field would make the whole page unreachable. */
+    char buf[8192];
     UInt32 i = 0;
     int n;
     CNHttpResponse r;
@@ -100,7 +111,53 @@ static void test_too_many_headers(void)
         buf[i++] = '\r'; buf[i++] = '\n';
     }
     buf[i++] = '\r'; buf[i++] = '\n';
-    CN_CHECK(CN_ParseHttpResponse(buf, i, &r) == kCNErrTooManyHeaders);
+    CN_CHECK(CN_ParseHttpResponse(buf, i, &r) == noErr);
+    CN_CHECK(r.headerCount == CN_HTTP_MAX_HEADERS);
+    CN_CHECK(r.bodyOffset == i);
+
+    /* an oversized value is skipped; the following header still lands */
+    i = (UInt32)strlen(sl);
+    memcpy(buf, sl, i);
+    {
+        const char *nm = "Content-Security-Policy: ";
+        memcpy(buf + i, nm, strlen(nm)); i += (UInt32)strlen(nm);
+        for (n = 0; n < CN_HTTP_MAX_VALUE + 100; n++) buf[i++] = 'p';
+        buf[i++] = '\r'; buf[i++] = '\n';
+    }
+    {
+        const char *ct = "Content-Type: text/html\r\n\r\n";
+        memcpy(buf + i, ct, strlen(ct)); i += (UInt32)strlen(ct);
+    }
+    CN_CHECK(CN_ParseHttpResponse(buf, i, &r) == noErr);
+    CN_CHECK(r.headerCount == 1);
+    CN_CHECK(strcmp(r.headers[0].name, "Content-Type") == 0);
+
+    /* body-framing fields are kept even if they arrive after the storage cap */
+    i = (UInt32)strlen(sl);
+    memcpy(buf, sl, i);
+    for (n = 0; n < CN_HTTP_MAX_HEADERS; n++) {
+        const char *x = "X-Ignored: y\r\n";
+        memcpy(buf + i, x, strlen(x)); i += (UInt32)strlen(x);
+    }
+    {
+        const char *cl = "Content-Length: 5\r\n\r\n";
+        memcpy(buf + i, cl, strlen(cl)); i += (UInt32)strlen(cl);
+    }
+    CN_CHECK(CN_ParseHttpResponse(buf, i, &r) == noErr);
+    CN_CHECK(r.headerCount == CN_HTTP_MAX_HEADERS);
+    CN_CHECK(has_header(&r, "Content-Length"));
+
+    /* but an oversized framing field is unsafe to ignore */
+    i = (UInt32)strlen(sl);
+    memcpy(buf, sl, i);
+    {
+        const char *cl = "Content-Length: ";
+        memcpy(buf + i, cl, strlen(cl)); i += (UInt32)strlen(cl);
+        for (n = 0; n < CN_HTTP_MAX_VALUE + 100; n++) buf[i++] = '9';
+        buf[i++] = '\r'; buf[i++] = '\n';
+        buf[i++] = '\r'; buf[i++] = '\n';
+    }
+    CN_CHECK(CN_ParseHttpResponse(buf, i, &r) == kCNErrHeaderTooLong);
 }
 
 static void test_nul_safe(void)

@@ -19,7 +19,12 @@
 
 #define CN_HPACK_DYN_CAP     4096u  /* dynamic table arena (bytes) */
 #define CN_HPACK_DYN_ENTRIES  128u  /* max live dynamic entries (4096/32) */
-#define CN_HPACK_STR_MAX     4096u  /* max decoded name or value length */
+#define CN_HPACK_STR_MAX    16384u  /* max decoded name or value length; real
+                                       servers ship multi-KB CSP/Set-Cookie
+                                       headers -- a smaller cap aborts the whole
+                                       H2 response (kCNErrHpackOverflow). The
+                                       sink still drops values it cannot store
+                                       (CN_HTTP_MAX_VALUE), same as HTTP/1.x. */
 
 typedef struct {
     unsigned char arena[CN_HPACK_DYN_CAP];   /* entry bytes, newest-first, packed */

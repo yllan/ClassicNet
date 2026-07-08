@@ -20,3 +20,4 @@
 /build-tls3/
 /build-fctest/
 /deps/mbedtls-host3/
+/build-hosttests/

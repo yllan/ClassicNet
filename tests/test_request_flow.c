@@ -99,6 +99,13 @@ static void drive(CNRequest *r)
         CN_RequestPump(r);
 }
 
+static UInt32 append_str(char *buf, UInt32 i, const char *s)
+{
+    UInt32 n = (UInt32)strlen(s);
+    memcpy(buf + i, s, n);
+    return i + n;
+}
+
 /* --- tests ---------------------------------------------------------------- */
 
 static void test_content_length_flow(void)
@@ -233,6 +240,52 @@ static void test_conflicting_content_length(void)
     CN_CHECK(cap.completed == 1 && cap.result == kCNErrBadHeader);
 }
 
+static void test_late_content_length_after_header_cap(void)
+{
+    char resp[1024];
+    UInt32 i = 0;
+    int n;
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+
+    i = append_str(resp, i, "HTTP/1.1 200 OK\r\n");
+    for (n = 0; n < CN_HTTP_MAX_HEADERS; n++)
+        i = append_str(resp, i, "X-Ignored: y\r\n");
+    i = append_str(resp, i, "Content-Length: 5\r\n\r\nhel");
+
+    fake_init(&f, resp, i, 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.completed == 1);
+    CN_CHECK(cap.result == kCNErrConnClosed);
+}
+
+static void test_late_transfer_encoding_after_header_cap(void)
+{
+    char resp[1024];
+    UInt32 i = 0;
+    int n;
+    FakeT f; CNRequest req; Cap cap; CNRequestCallbacks cb;
+
+    i = append_str(resp, i, "HTTP/1.1 200 OK\r\n");
+    for (n = 0; n < CN_HTTP_MAX_HEADERS; n++)
+        i = append_str(resp, i, "X-Ignored: y\r\n");
+    i = append_str(resp, i,
+                   "Transfer-Encoding: chunked\r\n\r\n"
+                   "5\r\nhello\r\n0\r\n\r\n");
+
+    fake_init(&f, resp, i, 0, 0);
+    memset(&cap, 0, sizeof(cap));
+    cb.onResponse = on_response; cb.onData = on_data; cb.onComplete = on_complete;
+    CN_CHECK(CN_RequestStart(&req, &f.base, "GET", "/", "h", 0, 0, &cb, &cap) == noErr);
+    drive(&req);
+
+    CN_CHECK(cap.completed == 1 && cap.result == noErr && cap.status == 200);
+    CN_CHECK(cap.bodyLen == 5 && memcmp(cap.body, "hello", 5) == 0);
+}
+
 /* "notchunked" must NOT be treated as chunked (no substring false positive); it
    is an unknown coding, so the body is connection-delimited. */
 static void test_transfer_encoding_not_chunked(void)
@@ -288,6 +341,8 @@ int main(void)
     CN_RUN(test_peer_closed_early);
     CN_RUN(test_chunked_wins_over_content_length);
     CN_RUN(test_conflicting_content_length);
+    CN_RUN(test_late_content_length_after_header_cap);
+    CN_RUN(test_late_transfer_encoding_after_header_cap);
     CN_RUN(test_transfer_encoding_not_chunked);
     CN_RUN(test_head_no_body);
     CN_RUN(test_100_continue_skipped);

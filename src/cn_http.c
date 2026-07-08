@@ -1,8 +1,43 @@
 #include "classicnet/cn_http.h"
 #include "classicnet/cn_errors.h"
 
+#include <string.h>
+
 static int cn_is_digit(char c) { return c >= '0' && c <= '9'; }
 static int cn_is_ows(char c)   { return c == ' ' || c == '\t'; }
+
+static char cn_lc(char c)
+{
+    return (c >= 'A' && c <= 'Z') ? (char)(c + ('a' - 'A')) : c;
+}
+
+static int cn_ci_eq_lit_n(const char *s, UInt32 n, const char *lit)
+{
+    UInt32 i;
+    for (i = 0; i < n && lit[i] != '\0'; i++)
+        if (cn_lc(s[i]) != cn_lc(lit[i]))
+            return 0;
+    return (i == n && lit[i] == '\0');
+}
+
+static int cn_is_framing_header_name(const char *name, UInt32 nameLen)
+{
+    return cn_ci_eq_lit_n(name, nameLen, "Content-Length") ||
+           cn_ci_eq_lit_n(name, nameLen, "Transfer-Encoding");
+}
+
+static int cn_is_stored_framing_header(const CNHeaderField *h)
+{
+    return cn_is_framing_header_name(h->name, (UInt32)strlen(h->name));
+}
+
+static void cn_drop_stored_header(CNHttpResponse *out, UInt32 idx)
+{
+    UInt32 j;
+    for (j = idx; j + 1 < out->headerCount; j++)
+        out->headers[j] = out->headers[j + 1];
+    out->headerCount--;
+}
 
 OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out)
 {
@@ -90,9 +125,36 @@ OSStatus CN_ParseHttpResponse(const char *buf, UInt32 len, CNHttpResponse *out)
             ve--;
         i += 2;                                      /* past header CRLF */
 
-        if (out->headerCount >= CN_HTTP_MAX_HEADERS) return kCNErrTooManyHeaders;
-        if (ne - ns >= CN_HTTP_MAX_NAME)  return kCNErrHeaderTooLong;
-        if (ve - vs >= CN_HTTP_MAX_VALUE) return kCNErrHeaderTooLong;
+        /* Tolerance for the open web: ordinary fields we cannot store -- more
+         * headers than the table, an oversized name, or an oversized value
+         * (multi-KB CSP headers are routine) -- are DROPPED, never a reason to
+         * fail the response. Body-framing fields are different: CNRequest must
+         * see Content-Length/Transfer-Encoding to avoid falling back to EOF
+         * framing, so preserve them preferentially or fail if they cannot be
+         * parsed safely. */
+        if (ne - ns >= CN_HTTP_MAX_NAME)
+            continue;
+        {
+            int framing = cn_is_framing_header_name(buf + ns, ne - ns);
+            if (ve - vs >= CN_HTTP_MAX_VALUE) {
+                if (framing) return kCNErrHeaderTooLong;
+                continue;
+            }
+            if (out->headerCount >= CN_HTTP_MAX_HEADERS) {
+                UInt32 j, drop = CN_HTTP_MAX_HEADERS;
+                if (!framing)
+                    continue;
+                for (j = out->headerCount; j > 0; j--) {
+                    if (!cn_is_stored_framing_header(&out->headers[j - 1])) {
+                        drop = j - 1;
+                        break;
+                    }
+                }
+                if (drop == CN_HTTP_MAX_HEADERS)
+                    return kCNErrTooManyHeaders;
+                cn_drop_stored_header(out, drop);
+            }
+        }
 
         {
             CNHeaderField *h = &out->headers[out->headerCount];
